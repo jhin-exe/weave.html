@@ -18,10 +18,9 @@
     --tabs-height: 45px;
     --sidebar-width: 280px;
     --radius-sm: 4px;
-    --radius-md: 6px;
 }
 
-/* --- RESET & BASE --- */
+/* --- RESET --- */
 *, *::before, *::after { box-sizing: border-box; outline: none; }
 
 body { 
@@ -37,7 +36,7 @@ body {
     font-size: 13px; 
 }
 
-/* --- APP SHELL LAYOUT --- */
+/* --- LAYOUT STRUCTURE --- */
 #app { 
     display: flex; 
     flex-direction: column; 
@@ -54,7 +53,7 @@ body {
     align-items: center; 
     justify-content: space-between; 
     padding: 0 1.5rem; 
-    z-index: 10;
+    z-index: 20; 
 }
 
 .app-workspace {
@@ -74,7 +73,7 @@ body {
     padding: 0 1.5rem; 
     gap: 2px; 
     align-items: flex-end;
-    z-index: 5;
+    z-index: 10;
 }
 
 .tab-content-area {
@@ -83,6 +82,14 @@ body {
     position: relative;
     background: var(--bg-panel);
     display: flex; 
+    flex-direction: column;
+}
+
+/* This is critical for the tabs to fill the screen */
+.tab-pane {
+    height: 100%;
+    width: 100%;
+    display: flex;
     flex-direction: column;
 }
 
@@ -101,7 +108,6 @@ body {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    z-index: 5;
 }
 
 .editor-main {
@@ -113,96 +119,42 @@ body {
     flex-direction: column;
 }
 
-/* --- CRITICAL UTILITIES (Fixes broken JS layouts) --- */
-
-/* Display & Position */
+/* --- UTILITIES --- */
 .hidden { display: none !important; }
 .flex { display: flex; }
 .flex-col { display: flex; flex-direction: column; }
 .flex-1 { flex: 1; }
-.flex-wrap { flex-wrap: wrap; }
 .items-center { align-items: center; }
-.items-end { align-items: flex-end; }
 .justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
 .justify-end { justify-content: flex-end; }
-.gap-1 { gap: 0.25rem; }
 .gap-2 { gap: 0.5rem; }
-.gap-4 { gap: 1rem; }
-
-/* Dimensions */
 .w-full { width: 100%; }
 .h-full { height: 100%; }
-.w-px { width: 1px; }
-.h-4 { height: 1rem; }
 
-/* Positioning (Fixes Test Runner Overlay) */
+/* Positioning utilities for Test Window & Map */
 .fixed { position: fixed; }
 .absolute { position: absolute; }
 .relative { position: relative; }
 .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-.z-0 { z-index: 0; }
-.z-10 { z-index: 10; }
 .z-50 { z-index: 50; }
-.top-0 { top: 0; }
-.left-0 { left: 0; }
-
-/* Spacing */
-.p-0 { padding: 0; }
-.p-2 { padding: 0.5rem; }
-.p-3 { padding: 0.75rem; }
-.p-4 { padding: 1rem; }
-.m-0 { margin: 0; }
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-4 { margin-top: 1rem; }
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-4 { margin-bottom: 1rem; }
-.mx-2 { margin-left: 0.5rem; margin-right: 0.5rem; }
-.ml-2 { margin-left: 0.5rem; }
-.pt-2 { padding-top: 0.5rem; }
+.cursor-grab { cursor: grab; }
+.overflow-hidden { overflow: hidden; }
 
 /* Colors & Borders */
 .bg-black { background-color: #000; }
 .bg-zinc-950 { background-color: #09090b; }
 .bg-zinc-900 { background-color: #18181b; }
-.bg-zinc-700 { background-color: #3f3f46; } /* Fallback for separator */
-
 .border { border: 1px solid var(--border); }
 .border-b { border-bottom: 1px solid var(--border); }
-.border-t { border-top: 1px solid var(--border); }
-.border-l-4 { border-left-width: 4px; }
-
-.border-zinc-700 { border-color: #3f3f46; }
-.border-zinc-800 { border-color: #27272a; }
-
-.text-zinc-500 { color: #71717a; }
-.text-danger { color: var(--danger); }
-.text-primary { color: #d4d4d4; } /* Lighter grey for links */
-.text-warning { color: #f59e0b; }
 .text-muted { color: var(--text-muted); }
-
-/* Typography */
-.font-bold { font-weight: 700; }
+.text-danger { color: var(--danger); }
+.text-warning { color: #f59e0b; }
 .font-mono { font-family: var(--font-mono); }
+.font-bold { font-weight: 700; }
 .text-xs { font-size: 0.75rem; }
-.text-sm { font-size: 0.875rem; }
-.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tracking-tight { letter-spacing: -0.025em; }
-
-/* Misc */
-.cursor-pointer { cursor: pointer; }
-.cursor-grab { cursor: grab; }
-.pointer-events-none { pointer-events: none; }
-.rounded { border-radius: var(--radius-sm); }
-.overflow-hidden { overflow: hidden; }
+.p-2 { padding: 0.5rem; }
+.p-4 { padding: 1rem; }
+.m-0 { margin: 0; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
 .scroll-y { overflow-y: auto; }
-.transition-colors { transition: color 0.1s, border-color 0.1s, background-color 0.1s; }
-.origin-top-left { transform-origin: top left; }
-
-/* Animation */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}

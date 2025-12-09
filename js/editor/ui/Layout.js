@@ -1,9 +1,6 @@
 import { Dom } from '../../utils/Dom.js';
 import { TabManager } from './TabManager.js';
 
-/**
- * Layout.js
- */
 export const Layout = {
     init() {
         const app = document.getElementById('app');
@@ -15,7 +12,7 @@ export const Layout = {
                 Dom.create('span', { 
                     class: 'font-bold text-mono', 
                     style: { fontSize: '16px' },
-                    text: 'STORYFORGE' // Restored name preference? or Weave? Kept simple.
+                    text: 'WEAVE.HTML' 
                 }),
                 Dom.create('span', { 
                     class: 'text-xs px-1 border border-zinc-700 rounded text-muted',
