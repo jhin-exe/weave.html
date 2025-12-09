@@ -2,18 +2,46 @@ import { Dom } from '../../../utils/Dom.js';
 import { Store } from '../../../data/Store.js';
 import { Events } from '../../../utils/Events.js';
 import { TabManager } from '../TabManager.js';
+import { SceneList } from '../SceneList.js';
 
 /**
  * SceneEditor.js
  * The core workspace. Handles editing text, media, and the complex choice logic.
+ * Now integrated with the sidebar layout.
  */
 export const SceneEditor = {
     init() {
         const container = TabManager.getContainer('scenes');
         
-        // Create the internal wrapper (so we can clear it easily on redraw)
-        this.root = Dom.create('div', { class: 'p-4 h-full scroll-y', style: { maxWidth: '800px', margin: '0 auto' } });
-        container.appendChild(this.root);
+        // Create the Split Layout
+        const split = Dom.create('div', { class: 'editor-split' });
+        
+        // Left: Sidebar
+        const sidebar = Dom.create('div', { class: 'editor-sidebar' }, [
+            Dom.create('div', { class: 'p-2 border-b border-zinc-700' }, [
+                Dom.create('button', {
+                    class: 'btn w-full',
+                    text: '+ New Scene',
+                    onClick: () => Store.addScene()
+                })
+            ]),
+            // This container is where SceneList.js will render
+            Dom.create('div', { id: 'scene-list-container', class: 'flex-1 scroll-y' })
+        ]);
+
+        // Right: Main Editor
+        this.mainPane = Dom.create('div', { class: 'editor-main' });
+        
+        // Wrapper for the actual form
+        this.root = Dom.create('div', { id: 'scene-editor-form', style: { maxWidth: '800px', margin: '0 auto' } });
+        this.mainPane.appendChild(this.root);
+
+        split.appendChild(sidebar);
+        split.appendChild(this.mainPane);
+        container.appendChild(split);
+
+        // Initialize the List Logic
+        SceneList.init();
 
         // Listen for selection
         Events.on('scene:selected', (id) => this.render(id));
@@ -100,8 +128,6 @@ export const SceneEditor = {
                 value: scene.text || '',
                 style: { height: '150px', fontFamily: 'var(--font-serif)', fontSize: '14px' },
                 onInput: (e) => Store.updateScene(sceneId, 'text', e.target.value) 
-                // Using onInput for text so it saves while typing, 
-                // but we block re-renders in the Event listener to keep focus.
             })
         ]);
 
@@ -159,15 +185,11 @@ export const SceneEditor = {
                         text: id, 
                         selected: choice.target === id 
                     })),
-                    Dom.create('option', { value: '_new', text: '+ New Scene...' }) // Future feature hook
+                    Dom.create('option', { value: '_new', text: '+ New Scene...' }) 
                 ])
             ])
         ]);
 
-        // -- Logic & Effects Sections --
-        // To keep the file size manageable, we use simple text summaries if empty,
-        // or render the list if active.
-        
         // *Logic Groups Helper*
         const renderLogicGroup = (group, gIdx) => {
             return Dom.create('div', { class: 'p-2 bg-zinc-900 border border-zinc-700 rounded mb-1' }, [
@@ -344,6 +366,3 @@ export const SceneEditor = {
         ]);
     }
 };
-
-// Initialize immediately
-SceneEditor.init();
