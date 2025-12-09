@@ -16,13 +16,38 @@ export class Runtime {
         } else {
             this.state = {
                 currentScene: this.data.config.startSceneId,
-                inventory: [...this.data.items], // Start with default items if any logic existed there
+                inventory: [...this.data.items], 
                 variables: { ...this.data.variables }
             };
-            // Fix: ensure inventory is array if it came from legacy data
             if(!Array.isArray(this.state.inventory)) this.state.inventory = [];
         }
         this.render();
+    }
+
+    // Methods called by the UI buttons
+    saveGame() {
+        const key = 'sf_save_' + this.data.meta.title;
+        localStorage.setItem(key, JSON.stringify(this.state));
+        alert('Saved!');
+    }
+
+    loadGame() {
+        const key = 'sf_save_' + this.data.meta.title;
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            this.state = JSON.parse(saved);
+            this.render();
+        } else {
+            alert('No save found.');
+        }
+    }
+
+    resetGame() {
+        if (this.audio) {
+            this.audio.stopBGM(); 
+        }
+        // Re-init with clean state
+        this.init(this.data);
     }
 
     // Main Game Loop
@@ -101,16 +126,15 @@ export class Runtime {
             if (this.checkConditions(choice.logicGroups)) {
                 const btn = document.createElement('button');
                 btn.className = 'rt-btn';
-                btn.innerHTML = choice.text; // InnerHTML allowed here for simple text formatting
+                btn.innerHTML = choice.text; 
                 btn.onclick = () => this.choose(index);
                 buttonsContainer.appendChild(btn);
             }
         });
 
-        // Scanline for terminal theme
         const scanline = this.root.classList.contains('layout-terminal') ? '<div class="scanline"></div>' : '';
 
-        // Build Full UI
+        // Build Full UI with System Buttons
         this.root.innerHTML = `
             ${scanline}
             <div class="rt-container">
@@ -120,13 +144,12 @@ export class Runtime {
                 </div>
             </div>
             <div class="rt-sys">
-                <button class="rt-sys-btn" onclick="alert('Save not implemented in test mode')">Save</button>
-                <button class="rt-sys-btn" onclick="alert('Load not implemented in test mode')">Load</button>
-                <button class="rt-sys-btn" onclick="window.activeRuntime.init(window.activeRuntime.data)">Reset</button>
+                <button class="rt-sys-btn" onclick="window.activeRuntime.saveGame()">Save</button>
+                <button class="rt-sys-btn" onclick="window.activeRuntime.loadGame()">Load</button>
+                <button class="rt-sys-btn" onclick="window.activeRuntime.resetGame()">Reset</button>
             </div>
         `;
         
-        // Append buttons manually to preserve events
         this.root.querySelector('#rt-out').appendChild(buttonsContainer);
     }
 }

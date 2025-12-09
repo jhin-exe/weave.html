@@ -1,8 +1,4 @@
-/* THEMES.CSS
-   These styles are used by the Runtime. 
-   They are what the PLAYER sees, not the Editor.
-   This file is bundled into the exported game.html.
-*/
+/* THEMES.CSS - EXACT PORT FROM INDEX.HTML */
 
 /* --- Runtime Container --- */
 .rt-root {
@@ -11,148 +7,175 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    /* Variables are injected by the Runtime or Exporter based on user settings */
     background-color: var(--rt-bg, #111);
     color: var(--rt-text, #eee);
     font-family: var(--rt-font, sans-serif);
     transition: background 0.3s, color 0.3s;
+    position: relative;
 }
+
+/* Scrollbars */
+.rt-root::-webkit-scrollbar { width: 8px; height: 8px; }
+.rt-root::-webkit-scrollbar-track { background: var(--rt-bg); }
+.rt-root::-webkit-scrollbar-thumb { background: var(--rt-accent); border-radius: 4px; }
 
 .rt-container {
     width: 100%;
-    max-width: 700px;
+    max-width: 800px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 40px;
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Center vertically by default */
+    justify-content: center;
 }
 
 /* --- Media --- */
 .rt-image {
     max-width: 100%;
     height: auto;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     border-radius: 4px;
     border: 1px solid var(--rt-border, #333);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     display: block;
 }
 
 /* --- Typography --- */
 .rt-text {
-    margin-bottom: 3rem;
-    white-space: pre-wrap; /* Preserves markdown spacing */
-    line-height: 1.8;
+    margin-bottom: 2rem;
+    white-space: pre-wrap;
+    line-height: 1.6;
     font-size: 1.1rem;
 }
 
 .rt-text b, .rt-text strong { color: var(--rt-accent, #fff); font-weight: 700; }
-.rt-text i, .rt-text em { font-style: italic; opacity: 0.9; }
+.rt-text i, .rt-text em { font-style: italic; opacity: 0.8; }
 .rt-text u { border-bottom: 1px solid var(--rt-accent, #fff); text-decoration: none; }
-.rt-text hr { border: 0; border-top: 1px dashed var(--rt-border, #444); margin: 30px 0; }
+.rt-text hr { border: 0; border-top: 1px dashed var(--rt-border, #444); margin: 20px 0; }
 .rt-text blockquote { 
     border-left: 3px solid var(--rt-accent, #fff); 
-    margin: 0 0 20px 0; 
-    padding-left: 20px; 
+    margin: 0; 
+    padding-left: 15px; 
+    opacity: 0.7; 
     font-style: italic; 
-    opacity: 0.8; 
 }
 
 /* --- Choices / Buttons --- */
 .rt-choices {
     display: flex;
     flex-direction: column;
-    gap: 10px;
 }
 
 .rt-btn {
     display: block;
     width: 100%;
     text-align: left;
-    padding: 16px 20px;
+    padding: 15px;
+    margin-bottom: 10px;
     background: transparent;
     border: 1px solid var(--rt-border, #333);
     color: var(--rt-text, #eee);
     cursor: pointer;
     font-family: inherit;
     font-size: 1rem;
-    transition: all 0.2s ease;
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
+    transition: 0.2s;
 }
 
 .rt-btn:hover {
     border-color: var(--rt-accent, #fff);
     color: var(--rt-accent, #fff);
-    background: rgba(255,255,255,0.03);
-    transform: translateX(4px);
+    background: rgba(255,255,255,0.05);
 }
 
-.rt-btn:active {
-    transform: translateX(2px);
-    opacity: 0.8;
+/* --- System Buttons (Save/Load/Reset) --- */
+.rt-sys {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    display: flex;
+    gap: 5px;
+    z-index: 100;
+}
+.rt-sys:hover { opacity: 1; }
+
+.rt-sys-btn {
+    background: #000;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 4px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: sans-serif;
 }
 
 /* --- LAYOUT VARIANTS --- */
 
-/* 1. Card Layout: Floating box in center */
+/* 1. Document (Standard) */
+.layout-document .rt-container {
+    justify-content: center;
+    min-height: 100%;
+}
+
+/* 2. Card Layout (Floating Box) */
+.layout-card.rt-root {
+    align-items: center;
+    justify-content: center;
+    background-image: radial-gradient(var(--rt-border) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
 .layout-card .rt-container {
     background: var(--rt-bg);
     border: 1px solid var(--rt-border);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    max-height: 85vh;
-    border-radius: 12px;
-    justify-content: flex-start; /* Top align content inside card */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    max-height: 80vh; /* RESTORED CONSTRAINT */
+    max-width: 600px; /* RESTORED CONSTRAINT */
+    padding: 40px;
     overflow-y: auto;
-    margin-top: auto;
-    margin-bottom: auto;
-}
-.layout-card.rt-root {
-    /* Create a pattern background for the void */
-    background-image: radial-gradient(var(--rt-border) 1px, transparent 1px);
-    background-size: 20px 20px;
-    background-color: #050505; /* Always dark void */
+    border-radius: 8px;
+    flex: 0 1 auto; /* Prevents stretching */
+    justify-content: flex-start;
 }
 
-/* 2. Terminal Layout: Retro feel */
+/* 3. Terminal Layout */
+.layout-terminal .rt-container { justify-content: center; }
 .layout-terminal .rt-text {
-    font-family: 'JetBrains Mono', monospace;
     border-bottom: 1px dashed var(--rt-border);
     padding-bottom: 20px;
-}
-.layout-terminal .rt-btn {
-    font-family: 'JetBrains Mono', monospace;
-    border: none;
-    padding: 10px 0;
 }
 .layout-terminal .rt-btn::before {
     content: '> ';
     opacity: 0.5;
-    margin-right: 10px;
 }
 .layout-terminal .rt-btn:hover {
     background: var(--rt-accent);
-    color: var(--rt-bg); /* Invert colors */
-    padding-left: 10px;
-    transform: none;
+    color: var(--rt-bg);
+}
+.scanline {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+    background-size: 100% 4px;
+    pointer-events: none; z-index: 99; opacity: 0.6;
 }
 
-/* 3. Cinematic: Bottom text, immersive background */
+/* 4. Cinematic Layout */
+.layout-cinematic.rt-root { justify-content: flex-end; }
 .layout-cinematic .rt-container {
-    justify-content: flex-end;
     padding-bottom: 60px;
-    background: linear-gradient(to top, var(--rt-bg) 0%, var(--rt-bg) 80%, transparent 100%);
-    min-height: 50vh; /* Only cover bottom half */
-    margin-top: auto;
-}
-.layout-cinematic.rt-root {
-    background-size: cover;
-    background-position: center;
+    justify-content: flex-end;
 }
 .layout-cinematic .rt-text {
     border-left: 3px solid var(--rt-accent);
     padding-left: 20px;
+    font-style: italic;
+}
+.layout-cinematic .rt-btn {
+    border: none;
+    border-bottom: 1px solid var(--rt-border);
+    padding: 12px 0;
+}
+.layout-cinematic .rt-btn:hover {
+    padding-left: 10px;
+    background: transparent;
 }
