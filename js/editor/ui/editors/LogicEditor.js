@@ -6,10 +6,10 @@ import { TabManager } from '../TabManager.js';
 export const LogicEditor = {
     init() {
         const container = TabManager.getContainer('logic');
-        
-        // Match original structure: .main-pane -> .grid-2
         this.mainPane = Dom.create('div', { class: 'main-pane' });
-        this.grid = Dom.create('div', { class: 'grid-2', style: 'max-width:900px; margin:0 auto;' });
+        
+        // This GRID-2 class needs to exist in CSS for this to align side-by-side
+        this.grid = Dom.create('div', { class: 'grid-2', style: 'max-width:900px; margin:0 auto; width:100%;' });
         
         this.mainPane.appendChild(this.grid);
         container.appendChild(this.mainPane);
@@ -32,8 +32,6 @@ export const LogicEditor = {
 
         // --- Column 1: Variables ---
         const varCol = Dom.create('div', {});
-        
-        // Header Row (Flex)
         const varHeader = Dom.create('div', { class: 'flex', style: 'justify-content:space-between; align-items:center; margin-bottom:10px;' }, [
             Dom.create('h3', { text: 'Variables', style: 'margin:0; font-size:14px;' }),
             Dom.create('button', { 
@@ -45,17 +43,12 @@ export const LogicEditor = {
                 }
             })
         ]);
-        
-        // Search Input
         const varSearch = Dom.create('input', { 
             placeholder: 'Search variables...', 
             style: 'margin-bottom:10px;',
             onInput: (e) => this.filterList(e.target.value, 'var-list')
         });
-
         const varList = Dom.create('div', { id: 'var-list' });
-
-        // Populate List
         Object.keys(project.variables).forEach(key => {
             varList.appendChild(Dom.create('div', { class: 'list-item' }, [
                 Dom.create('span', { text: key }),
@@ -66,16 +59,12 @@ export const LogicEditor = {
                 })
             ]));
         });
-
         varCol.appendChild(varHeader);
         varCol.appendChild(varSearch);
         varCol.appendChild(varList);
 
-
         // --- Column 2: Items ---
         const itemCol = Dom.create('div', {});
-
-        // Header Row (Flex)
         const itemHeader = Dom.create('div', { class: 'flex', style: 'justify-content:space-between; align-items:center; margin-bottom:10px;' }, [
             Dom.create('h3', { text: 'Inventory', style: 'margin:0; font-size:14px;' }),
             Dom.create('button', { 
@@ -87,17 +76,12 @@ export const LogicEditor = {
                 }
             })
         ]);
-
-        // Search Input
         const itemSearch = Dom.create('input', { 
             placeholder: 'Search items...', 
             style: 'margin-bottom:10px;',
             onInput: (e) => this.filterList(e.target.value, 'item-list')
         });
-
         const itemList = Dom.create('div', { id: 'item-list' });
-
-        // Populate List
         project.items.forEach((item, idx) => {
             itemList.appendChild(Dom.create('div', { class: 'list-item' }, [
                 Dom.create('span', { text: item }),
@@ -108,7 +92,6 @@ export const LogicEditor = {
                 })
             ]));
         });
-
         itemCol.appendChild(itemHeader);
         itemCol.appendChild(itemSearch);
         itemCol.appendChild(itemList);
@@ -117,5 +100,4 @@ export const LogicEditor = {
         this.grid.appendChild(itemCol);
     }
 };
-
 LogicEditor.init();

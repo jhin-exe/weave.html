@@ -10,17 +10,14 @@ export const Layout = {
         // 1. Header
         const header = Dom.create('header', {}, [
             Dom.create('div', { class: 'brand' }, [
-                Dom.create('span', { text: 'STORYFORGE' }),
-                Dom.create('span', { class: 'version-badge', text: 'v4.0' })
+                Dom.create('span', { text: 'WEAVE.HTML' }),
+                Dom.create('span', { class: 'version-badge', text: 'v3.0' })
             ]),
             Dom.create('div', { class: 'flex gap-2' }, [
                 Dom.create('button', { class: 'btn btn-play', text: '▶ Test', id: 'btn-test-game' }),
                 Dom.create('div', { style: 'width:1px; background:var(--border); margin:0 5px;' }),
-                
-                // RESTORED BUTTONS
                 Dom.create('button', { class: 'btn', text: 'Open', onClick: () => FileIO.triggerOpen() }),
                 Dom.create('button', { class: 'btn', text: 'Save', onClick: () => FileIO.saveProject() }),
-                
                 Dom.create('button', { class: 'btn btn-primary', text: 'Export', id: 'btn-export-game' })
             ])
         ]);
