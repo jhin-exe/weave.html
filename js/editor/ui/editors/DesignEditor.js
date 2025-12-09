@@ -9,6 +9,7 @@ export const DesignEditor = {
         const container = TabManager.getContainer('design');
         
         // 1. Split Layout
+        // Important: This needs to be the direct child to respect height: 100%
         const split = Dom.create('div', { class: 'design-split' });
         
         // 2. Controls (Left)
@@ -17,6 +18,8 @@ export const DesignEditor = {
         // 3. Preview (Right)
         const previewWrap = Dom.create('div', { class: 'design-preview' });
         const wrapInner = Dom.create('div', { class: 'preview-wrapper' });
+        
+        // Note: 'rt-root' class is vital for the runtime styles to apply
         this.previewFrame = Dom.create('div', { id: 'preview-frame', class: 'rt-root' });
         
         wrapInner.appendChild(this.previewFrame);
@@ -30,7 +33,7 @@ export const DesignEditor = {
             if(id === 'design') { this.renderControls(); this.renderPreview(); }
         });
         
-        // Real-time update helper
+        // Expose update theme for the color pickers to call globally if needed
         window.app = window.app || {};
         window.app.updateTheme = (k, v) => Store.updateTheme(k, v); 
     },
@@ -41,7 +44,6 @@ export const DesignEditor = {
         if(!project) return;
         const t = project.theme;
 
-        // Helper for Card
         const card = (label, content) => {
             const el = Dom.create('div', { class: 'card' });
             el.appendChild(Dom.create('label', { text: label }));
@@ -49,7 +51,7 @@ export const DesignEditor = {
             return el;
         };
 
-        // Layout
+        // Layout Selector
         this.controls.appendChild(card('Layout Structure', [
             Dom.create('select', { 
                 value: t.layout,
@@ -57,7 +59,7 @@ export const DesignEditor = {
             }, ['document', 'card', 'terminal', 'cinematic'].map(v => Dom.create('option', { value: v, text: v })))
         ]));
 
-        // Colors
+        // Color Pickers
         this.controls.appendChild(card('Theme Colors', [
             Dom.create('div', { class: 'grid-2', style: 'grid-gap:10px;' }, [
                 ['Background', 'bg'], ['Text', 'text'], ['Accent', 'accent'], ['Border', 'border']
@@ -71,18 +73,32 @@ export const DesignEditor = {
             ])))
         ]));
 
-        // Font
+        // Font Selector
         this.controls.appendChild(card('Typography', [
             Dom.create('select', { 
                 value: t.font,
                 onChange: (e) => { Store.updateTheme('font', e.target.value); this.renderPreview(); }
             }, ['Inter', 'JetBrains Mono', 'Merriweather', 'Orbitron', 'Creepster'].map(v => Dom.create('option', { value: v, text: v })))
         ]));
+        
+        // Custom CSS
+        const cssArea = Dom.create('textarea', {
+            id: 'thm-custom-css',
+            value: t.customCss,
+            placeholder: '.rt-btn { border-radius: 20px; }',
+            style: 'font-family:monospace; min-height:150px; background:#111; color:#aaffaa;',
+            onInput: (e) => { Store.updateTheme('customCss', e.target.value); this.renderPreview(); }
+        });
+        
+        // Custom CSS Card
+        const cssCard = Dom.create('div', { class: 'card', style: 'border-color: var(--accent);' });
+        cssCard.appendChild(Dom.create('label', { text: 'Custom CSS', style: 'color:var(--text-main)' }));
+        cssCard.appendChild(cssArea);
+        this.controls.appendChild(cssCard);
     },
 
     renderPreview() {
         const project = Store.getProject();
-        // Inject CSS Vars
         this.previewFrame.style.setProperty('--rt-bg', project.theme.bg);
         this.previewFrame.style.setProperty('--rt-text', project.theme.text);
         this.previewFrame.style.setProperty('--rt-accent', project.theme.accent);
@@ -90,7 +106,6 @@ export const DesignEditor = {
         this.previewFrame.style.setProperty('--rt-font', project.theme.font);
         this.previewFrame.className = `rt-root layout-${project.theme.layout}`;
 
-        // Render Dummy Content
         const runtime = new Runtime(this.previewFrame);
         runtime.init(project);
     }

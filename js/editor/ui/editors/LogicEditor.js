@@ -7,8 +7,9 @@ export const LogicEditor = {
     init() {
         const container = TabManager.getContainer('logic');
         
+        // Match original structure: .main-pane -> .grid-2
         this.mainPane = Dom.create('div', { class: 'main-pane' });
-        this.grid = Dom.create('div', { class: 'grid-2', style: 'maxWidth:900px; margin:0 auto' });
+        this.grid = Dom.create('div', { class: 'grid-2', style: 'max-width:900px; margin:0 auto;' });
         
         this.mainPane.appendChild(this.grid);
         container.appendChild(this.mainPane);
@@ -29,30 +30,34 @@ export const LogicEditor = {
         const project = Store.getProject();
         if (!project) return;
 
-        // Column 1: Variables
-        const varCol = Dom.create('div', {}, [
-            Dom.create('div', { class: 'flex', style: 'justify-content:space-between; align-items:center; margin-bottom:10px;' }, [
-                Dom.create('h3', { text: 'Variables', style: 'margin:0; font-size:14px;' }),
-                Dom.create('button', { 
-                    class: 'btn btn-primary btn-sm', 
-                    text: '+ Add',
-                    onClick: () => {
-                        const name = prompt("Variable Name:");
-                        if(name) { project.variables[name] = 0; Store.save(); this.render(); }
-                    }
-                })
-            ]),
-            // RESTORED SEARCH
-            Dom.create('input', { 
-                placeholder: 'Search variables...', 
-                style: 'margin-bottom:10px;',
-                onInput: (e) => this.filterList(e.target.value, 'var-list')
-            }),
-            Dom.create('div', { id: 'var-list' })
+        // --- Column 1: Variables ---
+        const varCol = Dom.create('div', {});
+        
+        // Header Row (Flex)
+        const varHeader = Dom.create('div', { class: 'flex', style: 'justify-content:space-between; align-items:center; margin-bottom:10px;' }, [
+            Dom.create('h3', { text: 'Variables', style: 'margin:0; font-size:14px;' }),
+            Dom.create('button', { 
+                class: 'btn btn-primary btn-sm', 
+                text: '+ Add',
+                onClick: () => {
+                    const name = prompt("Variable Name:");
+                    if(name) { project.variables[name] = 0; Store.save(); this.render(); }
+                }
+            })
         ]);
+        
+        // Search Input
+        const varSearch = Dom.create('input', { 
+            placeholder: 'Search variables...', 
+            style: 'margin-bottom:10px;',
+            onInput: (e) => this.filterList(e.target.value, 'var-list')
+        });
 
+        const varList = Dom.create('div', { id: 'var-list' });
+
+        // Populate List
         Object.keys(project.variables).forEach(key => {
-            varCol.lastChild.appendChild(Dom.create('div', { class: 'list-item' }, [
+            varList.appendChild(Dom.create('div', { class: 'list-item' }, [
                 Dom.create('span', { text: key }),
                 Dom.create('button', { 
                     class: 'btn btn-danger btn-sm', 
@@ -62,30 +67,39 @@ export const LogicEditor = {
             ]));
         });
 
-        // Column 2: Items
-        const itemCol = Dom.create('div', {}, [
-            Dom.create('div', { class: 'flex', style: 'justify-content:space-between; align-items:center; margin-bottom:10px;' }, [
-                Dom.create('h3', { text: 'Inventory', style: 'margin:0; font-size:14px;' }),
-                Dom.create('button', { 
-                    class: 'btn btn-primary btn-sm', 
-                    text: '+ Add',
-                    onClick: () => {
-                        const id = prompt("Item ID:");
-                        if(id) { project.items.push(id); Store.save(); this.render(); }
-                    }
-                })
-            ]),
-            // RESTORED SEARCH
-            Dom.create('input', { 
-                placeholder: 'Search items...', 
-                style: 'margin-bottom:10px;',
-                onInput: (e) => this.filterList(e.target.value, 'item-list')
-            }),
-            Dom.create('div', { id: 'item-list' })
+        varCol.appendChild(varHeader);
+        varCol.appendChild(varSearch);
+        varCol.appendChild(varList);
+
+
+        // --- Column 2: Items ---
+        const itemCol = Dom.create('div', {});
+
+        // Header Row (Flex)
+        const itemHeader = Dom.create('div', { class: 'flex', style: 'justify-content:space-between; align-items:center; margin-bottom:10px;' }, [
+            Dom.create('h3', { text: 'Inventory', style: 'margin:0; font-size:14px;' }),
+            Dom.create('button', { 
+                class: 'btn btn-primary btn-sm', 
+                text: '+ Add',
+                onClick: () => {
+                    const id = prompt("Item ID:");
+                    if(id) { project.items.push(id); Store.save(); this.render(); }
+                }
+            })
         ]);
 
+        // Search Input
+        const itemSearch = Dom.create('input', { 
+            placeholder: 'Search items...', 
+            style: 'margin-bottom:10px;',
+            onInput: (e) => this.filterList(e.target.value, 'item-list')
+        });
+
+        const itemList = Dom.create('div', { id: 'item-list' });
+
+        // Populate List
         project.items.forEach((item, idx) => {
-            itemCol.lastChild.appendChild(Dom.create('div', { class: 'list-item' }, [
+            itemList.appendChild(Dom.create('div', { class: 'list-item' }, [
                 Dom.create('span', { text: item }),
                 Dom.create('button', { 
                     class: 'btn btn-danger btn-sm', 
@@ -95,8 +109,13 @@ export const LogicEditor = {
             ]));
         });
 
+        itemCol.appendChild(itemHeader);
+        itemCol.appendChild(itemSearch);
+        itemCol.appendChild(itemList);
+
         this.grid.appendChild(varCol);
         this.grid.appendChild(itemCol);
     }
 };
+
 LogicEditor.init();

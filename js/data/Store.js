@@ -6,18 +6,14 @@ class StoreManager {
     constructor() {
         this.project = null;
         this.activeSceneId = null;
-        this.autoSaveKey = 'weave_autosave_v4';
     }
 
     init() {
-        const saved = localStorage.getItem(this.autoSaveKey);
-        if (saved) {
-            try { this.project = JSON.parse(saved); } 
-            catch (e) { this.project = ProjectModel.create(); }
-        } else {
-            this.project = ProjectModel.create();
-        }
+        // Always start fresh on reload
+        this.project = ProjectModel.create();
         this.activeSceneId = this.project.config.startSceneId;
+        
+        // Defer emission to ensure UI listeners are ready
         setTimeout(() => {
             Events.emit('project:loaded', this.project);
             Events.emit('scene:selected', this.activeSceneId);
@@ -27,7 +23,6 @@ class StoreManager {
     loadData(data) {
         this.project = data;
         this.activeSceneId = data.config.startSceneId;
-        this.save();
         Events.emit('project:loaded', this.project);
         Events.emit('scene:selected', this.activeSceneId);
     }
@@ -36,7 +31,6 @@ class StoreManager {
     addScene() {
         const id = Id.generate('scene');
         this.project.scenes[id] = { id, text: "...", image: "", audio: "", choices: [] };
-        this.save();
         Events.emit('project:updated');
         this.selectScene(id);
     }
@@ -50,7 +44,6 @@ class StoreManager {
     updateScene(id, field, value) {
         if (!this.project.scenes[id]) return;
         this.project.scenes[id][field] = value;
-        this.save();
         Events.emit('scene:updated', { id, field, value });
     }
 
@@ -66,16 +59,14 @@ class StoreManager {
         if(this.project.config.startSceneId === oldId) this.project.config.startSceneId = newId;
         
         this.activeSceneId = newId;
-        this.save();
         Events.emit('project:loaded');
         this.selectScene(newId);
     }
 
     deleteScene(id) {
         delete this.project.scenes[id];
-        this.save();
-        Events.emit('project:loaded'); // Re-renders list
-        Events.emit('scene:selected', null); // Clears editor
+        Events.emit('project:loaded'); 
+        Events.emit('scene:selected', null);
     }
 
     /* CHOICE OPS */
@@ -83,23 +74,19 @@ class StoreManager {
         this.project.scenes[sceneId].choices.push({
             id: Id.generate('ch'), text: "Choice", target: sceneId, logicGroups: [], effects: []
         });
-        this.save();
         Events.emit('scene:updated', { id: sceneId });
     }
 
     updateChoice(sceneId, index, field, value) {
         this.project.scenes[sceneId].choices[index][field] = value;
-        this.save();
         Events.emit('scene:updated', { id: sceneId });
     }
 
     deleteChoice(sceneId, index) {
         this.project.scenes[sceneId].choices.splice(index, 1);
-        this.save();
         Events.emit('scene:updated', { id: sceneId });
     }
 
-    // RESTORED QoL FEATURE
     createLinkedScene(sceneId, choiceIndex) {
         const choice = this.project.scenes[sceneId].choices[choiceIndex];
         const newId = `${sceneId}_${choiceIndex + 1}`;
@@ -109,16 +96,16 @@ class StoreManager {
         this.project.scenes[newId] = { id: newId, text: "New branch...", image: "", audio: "", choices: [] };
         choice.target = newId;
         
-        this.save();
-        Events.emit('project:updated'); // Updates Map/List
-        this.selectScene(newId); // Jumps to new scene
+        Events.emit('project:updated');
+        this.selectScene(newId);
     }
 
     /* META OPS */
-    updateTheme(k, v) { this.project.theme[k] = v; this.save(); Events.emit('theme:updated'); }
-    updateConfig(k, v) { this.project.config[k] = v; this.save(); }
+    updateTheme(k, v) { this.project.theme[k] = v; Events.emit('theme:updated'); }
+    updateConfig(k, v) { this.project.config[k] = v; }
     
-    save() { localStorage.setItem(this.autoSaveKey, JSON.stringify(this.project)); }
+    // In-memory only, no localStorage calls
+    save() { } 
     getProject() { return this.project; }
 }
 
