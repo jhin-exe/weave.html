@@ -7,10 +7,9 @@ export const TestRunner = {
         const btn = document.getElementById('btn-test-game');
         if (btn) btn.onclick = () => this.start();
         
-        // Ensure overlay exists
         this.createOverlay();
 
-        // EXPOSE CLOSE FUNCTION GLOBALLY FOR HTML ONCLICK HANDLERS
+        // Safe global close function
         window.app = window.app || {};
         window.app.closeTest = () => this.close();
     },
@@ -23,8 +22,8 @@ export const TestRunner = {
                 Dom.create('button', {
                     class: 'btn btn-danger',
                     text: 'Close Test',
-                    // Direct binding avoids scope issues
-                    onClick: () => this.close()
+                    // We use the global reference to be safe against 'this' context loss
+                    onClick: () => window.app.closeTest()
                 })
             ]),
             Dom.create('div', { class: 'preview-wrapper' }, [
@@ -41,33 +40,33 @@ export const TestRunner = {
         const overlay = document.getElementById('play-overlay');
         overlay.classList.remove('hidden');
 
-        // Setup Runtime Container
         const gameRoot = document.getElementById('rt-root-live');
         
-        // Inject Theme Vars
+        // CSS Vars
         gameRoot.style.setProperty('--rt-bg', project.theme.bg);
         gameRoot.style.setProperty('--rt-text', project.theme.text);
         gameRoot.style.setProperty('--rt-accent', project.theme.accent);
         gameRoot.style.setProperty('--rt-border', project.theme.border);
         gameRoot.style.setProperty('--rt-font', project.theme.font);
-        
-        // Important: This class triggers the layout specific CSS rules we just fixed
         gameRoot.className = `rt-root layout-${project.theme.layout}`;
 
-        // Initialize Runtime
         const runtime = new Runtime(gameRoot);
         const dataClone = JSON.parse(JSON.stringify(project));
         runtime.init(dataClone);
         
         this.activeRuntime = runtime;
-        
-        // Expose for the inline onclick handlers in Runtime.render() buttons
         window.activeRuntime = runtime; 
     },
 
     close() {
+        // Check if activeRuntime exists, then check if audio exists, THEN check if pause exists
         if (this.activeRuntime && this.activeRuntime.audio) {
-            this.activeRuntime.audio.pause();
+            if (typeof this.activeRuntime.audio.pause === 'function') {
+                this.activeRuntime.audio.pause();
+            } else if (typeof this.activeRuntime.audio.stopBGM === 'function') {
+                // If it's our AudioController wrapper
+                this.activeRuntime.audio.stopBGM();
+            }
             this.activeRuntime.audio = null;
         }
         
@@ -78,6 +77,7 @@ export const TestRunner = {
         if(root) root.innerHTML = '';
         
         window.activeRuntime = null;
+        this.activeRuntime = null;
     }
 };
 
