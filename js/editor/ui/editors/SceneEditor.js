@@ -263,3 +263,5 @@ export const SceneEditor = {
         return card;
     }
 };
+
+SceneEditor.init();
