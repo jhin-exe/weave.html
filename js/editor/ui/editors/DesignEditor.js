@@ -8,30 +8,31 @@ export const DesignEditor = {
     init() {
         const container = TabManager.getContainer('design');
         
-        // Split View: Controls (Left) - Preview (Right)
-        const split = Dom.create('div', { class: 'editor-split' });
+        // 1. Split Layout
+        const split = Dom.create('div', { class: 'design-split' });
         
-        // Controls
-        this.controls = Dom.create('div', { class: 'editor-sidebar p-4 scroll-y', style: { width: '350px' } });
+        // 2. Controls (Left)
+        this.controls = Dom.create('div', { class: 'design-controls' });
         
-        // Preview Area
-        const previewWrapper = Dom.create('div', { class: 'editor-main bg-black p-0 flex flex-col' });
-        this.previewFrame = Dom.create('div', { class: 'w-full h-full relative' });
+        // 3. Preview (Right)
+        const previewWrap = Dom.create('div', { class: 'design-preview' });
+        const wrapInner = Dom.create('div', { class: 'preview-wrapper' });
+        this.previewFrame = Dom.create('div', { id: 'preview-frame', class: 'rt-root' });
         
-        previewWrapper.appendChild(this.previewFrame);
+        wrapInner.appendChild(this.previewFrame);
+        previewWrap.appendChild(wrapInner);
+        
         split.appendChild(this.controls);
-        split.appendChild(previewWrapper);
+        split.appendChild(previewWrap);
         container.appendChild(split);
 
         Events.on('tab:changed', (id) => { 
-            if(id === 'design') {
-                this.renderControls();
-                this.renderPreview();
-            }
+            if(id === 'design') { this.renderControls(); this.renderPreview(); }
         });
         
-        // Real-time update on theme change
-        Events.on('theme:updated', () => this.renderPreview());
+        // Real-time update helper
+        window.app = window.app || {};
+        window.app.updateTheme = (k, v) => Store.updateTheme(k, v); 
     },
 
     renderControls() {
@@ -40,66 +41,58 @@ export const DesignEditor = {
         if(!project) return;
         const t = project.theme;
 
-        const makeColor = (label, key) => Dom.create('div', { class: 'mb-2' }, [
-            Dom.create('label', { text: label }),
-            Dom.create('input', { 
-                type: 'color', 
-                value: t[key], 
-                style: { height: '40px' },
-                onInput: (e) => Store.updateTheme(key, e.target.value)
-            })
-        ]);
+        // Helper for Card
+        const card = (label, content) => {
+            const el = Dom.create('div', { class: 'card' });
+            el.appendChild(Dom.create('label', { text: label }));
+            content.forEach(c => el.appendChild(c));
+            return el;
+        };
 
-        this.controls.appendChild(Dom.create('div', { class: 'card' }, [
-            Dom.create('label', { text: 'Layout' }),
+        // Layout
+        this.controls.appendChild(card('Layout Structure', [
             Dom.create('select', { 
                 value: t.layout,
-                onChange: (e) => Store.updateTheme('layout', e.target.value) 
-            }, [
-                Dom.create('option', { value: 'document', text: 'Document' }),
-                Dom.create('option', { value: 'card', text: 'Card' }),
-                Dom.create('option', { value: 'terminal', text: 'Terminal' }),
-                Dom.create('option', { value: 'cinematic', text: 'Cinematic' }),
-            ])
+                onChange: (e) => { Store.updateTheme('layout', e.target.value); this.renderPreview(); }
+            }, ['document', 'card', 'terminal', 'cinematic'].map(v => Dom.create('option', { value: v, text: v })))
         ]));
 
-        this.controls.appendChild(Dom.create('div', { class: 'card' }, [
-            makeColor('Background', 'bg'),
-            makeColor('Text', 'text'),
-            makeColor('Accent', 'accent'),
-            makeColor('Border', 'border')
+        // Colors
+        this.controls.appendChild(card('Theme Colors', [
+            Dom.create('div', { class: 'grid-2', style: 'grid-gap:10px;' }, [
+                ['Background', 'bg'], ['Text', 'text'], ['Accent', 'accent'], ['Border', 'border']
+            ].map(([lbl, key]) => Dom.create('div', {}, [
+                Dom.create('label', { text: lbl, style: 'font-size:9px' }),
+                Dom.create('input', { 
+                    type: 'color', 
+                    value: t[key], 
+                    onInput: (e) => { Store.updateTheme(key, e.target.value); this.renderPreview(); }
+                })
+            ])))
         ]));
 
-        this.controls.appendChild(Dom.create('div', { class: 'card' }, [
-            Dom.create('label', { text: 'Font' }),
+        // Font
+        this.controls.appendChild(card('Typography', [
             Dom.create('select', { 
                 value: t.font,
-                onChange: (e) => Store.updateTheme('font', e.target.value) 
-            }, [
-                Dom.create('option', { value: 'Inter', text: 'Inter' }),
-                Dom.create('option', { value: 'JetBrains Mono', text: 'JetBrains Mono' }),
-                Dom.create('option', { value: 'Merriweather', text: 'Merriweather' }),
-            ])
+                onChange: (e) => { Store.updateTheme('font', e.target.value); this.renderPreview(); }
+            }, ['Inter', 'JetBrains Mono', 'Merriweather', 'Orbitron', 'Creepster'].map(v => Dom.create('option', { value: v, text: v })))
         ]));
     },
 
     renderPreview() {
-        Dom.clear(this.previewFrame);
         const project = Store.getProject();
-        
-        // We reuse the Runtime class to render the preview
-        // We need to inject the CSS variables onto the container
+        // Inject CSS Vars
         this.previewFrame.style.setProperty('--rt-bg', project.theme.bg);
         this.previewFrame.style.setProperty('--rt-text', project.theme.text);
         this.previewFrame.style.setProperty('--rt-accent', project.theme.accent);
         this.previewFrame.style.setProperty('--rt-border', project.theme.border);
         this.previewFrame.style.setProperty('--rt-font', project.theme.font);
-        
         this.previewFrame.className = `rt-root layout-${project.theme.layout}`;
 
+        // Render Dummy Content
         const runtime = new Runtime(this.previewFrame);
         runtime.init(project);
     }
 };
-
 DesignEditor.init();

@@ -8,27 +8,25 @@ export const SceneList = {
         Events.on('project:updated', () => this.render());
         Events.on('scene:selected', (id) => this.highlight(id));
         
-        // Try rendering immediately if data exists
         if (Store.project) this.render();
     },
 
     render() {
-        const container = document.getElementById('scene-list-container');
-        if (!container) return; // Wait for SceneEditor to create the DOM
+        const container = document.getElementById('scene-list'); // Restored ID
+        if (!container) return;
 
         Dom.clear(container);
         const project = Store.getProject();
         if (!project) return;
 
         Object.values(project.scenes).forEach(scene => {
-            const isStart = scene.id === project.config.startSceneId;
             container.appendChild(Dom.create('div', {
                 class: 'list-item',
                 dataset: { id: scene.id },
                 onClick: () => Store.selectScene(scene.id)
             }, [
-                Dom.create('span', { text: scene.id, class: 'text-mono truncate' }),
-                isStart ? Dom.create('span', { text: '★', class: 'text-warning font-bold' }) : null
+                Dom.create('span', { text: scene.id }),
+                // Restored active styling logic will be handled by highlight()
             ]));
         });
 
@@ -36,8 +34,8 @@ export const SceneList = {
     },
 
     highlight(id) {
-        document.querySelectorAll('#scene-list-container .list-item').forEach(el => el.classList.remove('active'));
-        const target = document.querySelector(`#scene-list-container .list-item[data-id="${id}"]`);
+        document.querySelectorAll('#scene-list .list-item').forEach(el => el.classList.remove('active'));
+        const target = document.querySelector(`#scene-list .list-item[data-id="${id}"]`);
         if (target) target.classList.add('active');
     }
 };

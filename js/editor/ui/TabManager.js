@@ -5,11 +5,11 @@ export const TabManager = {
     activeTab: 'scenes',
     containers: {},
 
-    init(navContainer, contentRoot) {
+    init(navContainer, appRoot) {
         const tabs = [
             { id: 'scenes', label: 'Scenes' },
             { id: 'map', label: 'Map' },
-            { id: 'logic', label: 'Logic' },
+            { id: 'logic', label: 'Data & Logic' },
             { id: 'design', label: 'Design' },
             { id: 'settings', label: 'Settings' }
         ];
@@ -24,15 +24,15 @@ export const TabManager = {
             }));
         });
 
-        // 2. Create Content Containers
+        // 2. Create Content Containers (The .content-area divs)
         tabs.forEach(tab => {
             const container = Dom.create('div', {
-                id: `tab-content-${tab.id}`,
-                // "tab-pane" is the key class matching main.css
-                class: `tab-pane ${tab.id === this.activeTab ? '' : 'hidden'}` 
+                id: `tab-${tab.id}`,
+                // "content-area" is vital for the layout flexbox to work
+                class: `content-area ${tab.id === this.activeTab ? '' : 'hidden'}` 
             });
             this.containers[tab.id] = container;
-            contentRoot.appendChild(container);
+            appRoot.appendChild(container);
         });
     },
 

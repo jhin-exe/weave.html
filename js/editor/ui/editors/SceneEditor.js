@@ -8,37 +8,31 @@ export const SceneEditor = {
     init() {
         const container = TabManager.getContainer('scenes');
         
-        // The Split Layout (Sidebar Left, Editor Right)
-        const split = Dom.create('div', { class: 'editor-split' });
-        
-        // Left: Sidebar
-        const sidebar = Dom.create('div', { class: 'editor-sidebar' }, [
-            Dom.create('div', { class: 'p-2 border-b border-zinc-700' }, [
+        // 1. Sidebar (Matches .sidebar)
+        const sidebar = Dom.create('div', { class: 'sidebar' }, [
+            Dom.create('div', { style: 'padding:10px; border-bottom:1px solid var(--border);' }, [
                 Dom.create('button', {
-                    class: 'btn w-full',
-                    text: '+ New Scene',
+                    class: 'btn btn-primary w-full',
+                    text: '+ Scene',
                     onClick: () => Store.addScene()
                 })
             ]),
-            // SCENE LIST CONTAINER
-            Dom.create('div', { id: 'scene-list-container', class: 'flex-1 scroll-y' })
+            Dom.create('div', { id: 'scene-list' }) // SceneList.js fills this
         ]);
 
-        // Right: Main Editor
-        this.mainPane = Dom.create('div', { class: 'editor-main' });
-        this.root = Dom.create('div', { id: 'scene-editor-form', style: { maxWidth: '800px', margin: '0 auto' } });
+        // 2. Main Pane (Matches .main-pane)
+        this.mainPane = Dom.create('div', { class: 'main-pane' });
+        this.root = Dom.create('div', { id: 'scene-editor' });
+        
         this.mainPane.appendChild(this.root);
+        container.appendChild(sidebar);
+        container.appendChild(this.mainPane);
 
-        split.appendChild(sidebar);
-        split.appendChild(this.mainPane);
-        container.appendChild(split);
-
-        // Init the list logic
         SceneList.init();
 
         Events.on('scene:selected', (id) => this.render(id));
         Events.on('scene:updated', (data) => {
-            if (data.id === this.currentId && !['text', 'id'].includes(data.field)) {
+             if (data.id === this.currentId && !['text', 'id'].includes(data.field)) {
                 this.render(data.id);
             }
         });
@@ -48,71 +42,89 @@ export const SceneEditor = {
         this.currentId = sceneId;
         const project = Store.getProject();
         const scene = project.scenes[sceneId];
-        
         Dom.clear(this.root);
 
         if (!scene) {
-            this.root.appendChild(Dom.create('div', { class: 'text-muted text-center mt-4', text: 'Select a scene to edit.' }));
+            this.root.appendChild(Dom.create('div', { 
+                style: 'text-align:center; color:var(--text-muted); margin-top:50px;', 
+                text: 'Select a scene to edit.' 
+            }));
             return;
         }
 
-        // --- Header ---
-        const header = Dom.create('div', { class: 'card flex justify-between items-center mb-4' }, [
-            Dom.create('div', { class: 'flex items-center gap-2 flex-1' }, [
-                Dom.create('label', { text: 'ID:', class: 'm-0 text-xs' }),
-                Dom.create('input', {
-                    type: 'text',
-                    value: scene.id,
-                    class: 'font-bold font-mono',
-                    style: { width: '200px' },
+        // Header (Rename/Delete)
+        const header = Dom.create('div', { class: 'card flex', style: 'justify-content:space-between; align-items:center; gap: 10px;' }, [
+            Dom.create('div', { class: 'flex gap-2', style: 'flex:1' }, [
+                Dom.create('input', { 
+                    value: scene.id, 
                     onChange: (e) => {
-                        const newId = e.target.value.trim();
-                        if (newId && newId !== scene.id) Store.renameScene(scene.id, newId);
+                        const val = e.target.value.trim();
+                        if(val && val !== scene.id) Store.renameScene(scene.id, val);
                     }
-                })
+                }),
+                Dom.create('button', { class: 'btn btn-primary', text: 'Rename', onClick: () => {} }) // Action handled by input change for now
             ]),
-            Dom.create('button', {
-                class: 'btn btn-danger btn-sm',
-                text: 'Delete',
-                onClick: () => confirm(`Delete ${scene.id}?`) && Store.deleteScene(scene.id)
+            Dom.create('button', { 
+                class: 'btn btn-danger', 
+                text: 'Delete', 
+                onClick: () => confirm(`Delete ${scene.id}?`) && Store.deleteScene(scene.id) 
             })
         ]);
 
-        // --- Content ---
-        const content = Dom.create('div', { class: 'card' }, [
-            Dom.create('div', { class: 'section-header', text: 'Content' }),
-            Dom.create('div', { class: 'flex gap-2 mb-2' }, [
+        // Content Inputs
+        const content = Dom.create('div', { style: 'margin-bottom:15px;' }, [
+            Dom.create('label', { text: 'Media' }),
+            Dom.create('div', { class: 'flex gap-2' }, [
                 Dom.create('input', { placeholder: 'Image URL', value: scene.image || '', onChange: (e) => Store.updateScene(sceneId, 'image', e.target.value) }),
                 Dom.create('input', { placeholder: 'Audio URL', value: scene.audio || '', onChange: (e) => Store.updateScene(sceneId, 'audio', e.target.value) })
             ]),
-            Dom.create('textarea', {
-                value: scene.text || '',
-                style: { height: '150px', fontFamily: 'var(--font-serif)', fontSize: '14px' },
-                onInput: (e) => Store.updateScene(sceneId, 'text', e.target.value)
-            })
+            Dom.create('div', { style: 'margin-top: 15px;' }, [
+                Dom.create('label', { text: 'Story Text' }),
+                Dom.create('textarea', {
+                    value: scene.text || '',
+                    style: 'min-height: 150px;',
+                    onInput: (e) => Store.updateScene(sceneId, 'text', e.target.value)
+                })
+            ])
         ]);
 
-        // --- Choices ---
-        const choicesDiv = Dom.create('div', { class: 'flex-col gap-2' });
+        // Choices
+        const choicesContainer = Dom.create('div', {});
         scene.choices.forEach((c, idx) => {
-             choicesDiv.appendChild(this.renderChoiceCard(sceneId, c, idx, project));
+            choicesContainer.appendChild(this.renderChoice(sceneId, c, idx, project));
         });
 
         this.root.appendChild(header);
         this.root.appendChild(content);
-        this.root.appendChild(Dom.create('button', { class: 'btn btn-primary w-full mt-4', text: '+ Add Choice', onClick: () => Store.addChoice(sceneId) }));
-        this.root.appendChild(Dom.create('div', { class: 'mt-4' }, [choicesDiv]));
+        this.root.appendChild(choicesContainer);
+        this.root.appendChild(Dom.create('button', { 
+            class: 'btn btn-primary w-full', 
+            text: '+ Add Choice', 
+            onClick: () => Store.addChoice(sceneId) 
+        }));
+        
+        // Spacer
+        this.root.appendChild(Dom.create('div', { style: 'height: 50px' }));
     },
 
-    renderChoiceCard(sceneId, choice, index, project) {
-        return Dom.create('div', { class: 'card p-3 mb-2' }, [
-            Dom.create('div', { class: 'flex gap-2 mb-2' }, [
-                Dom.create('input', { value: choice.text, onInput: (e) => Store.updateChoice(sceneId, index, 'text', e.target.value) }),
-                Dom.create('select', { onChange: (e) => Store.updateChoice(sceneId, index, 'target', e.target.value) }, [
-                     ...Object.keys(project.scenes).map(id => Dom.create('option', { value: id, text: id, selected: choice.target === id }))
+    renderChoice(sceneId, choice, index, project) {
+        // Simplified Choice Card to match your look
+        return Dom.create('div', { class: 'card' }, [
+             Dom.create('div', { class: 'flex gap-2', style: 'margin-bottom:15px' }, [
+                Dom.create('div', { style: 'flex:2' }, [
+                    Dom.create('label', { text: 'Text' }),
+                    Dom.create('input', { value: choice.text, onInput: (e) => Store.updateChoice(sceneId, index, 'text', e.target.value) })
+                ]),
+                Dom.create('div', { style: 'flex:1' }, [
+                    Dom.create('label', { text: 'Target' }),
+                    Dom.create('select', { onChange: (e) => Store.updateChoice(sceneId, index, 'target', e.target.value) }, 
+                        Object.keys(project.scenes).map(id => Dom.create('option', { value: id, text: id, selected: choice.target === id }))
+                    )
                 ])
-            ]),
-            Dom.create('button', { class: 'btn btn-danger btn-sm', text: 'Delete', onClick: () => Store.deleteChoice(sceneId, index) })
+             ]),
+             Dom.create('div', { style: 'text-align:right' }, [
+                 Dom.create('button', { class: 'btn btn-danger btn-sm', text: 'Delete Choice', onClick: () => Store.deleteChoice(sceneId, index) })
+             ])
         ]);
     }
 };

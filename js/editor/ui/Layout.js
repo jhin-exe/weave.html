@@ -6,41 +6,29 @@ export const Layout = {
         const app = document.getElementById('app');
         Dom.clear(app);
 
-        // 1. Header
-        const header = Dom.create('header', { class: 'app-header' }, [
-            Dom.create('div', { class: 'flex items-center gap-2' }, [
-                Dom.create('span', { 
-                    class: 'font-bold text-mono', 
-                    style: { fontSize: '16px' },
-                    text: 'WEAVE.HTML' 
-                }),
-                Dom.create('span', { 
-                    class: 'text-xs px-1 border border-zinc-700 rounded text-muted',
-                    text: 'v4.0'
-                })
+        // 1. Header (Matches your <header> block)
+        const header = Dom.create('header', {}, [
+            Dom.create('div', { class: 'brand' }, [
+                // Minimal SVG Icon
+                Dom.create('span', { text: 'WEAVE.HTML' }),
+                Dom.create('span', { class: 'version-badge', text: 'v1.0' })
             ]),
             Dom.create('div', { class: 'flex gap-2' }, [
-                Dom.create('button', { class: 'btn btn-primary', text: '▶ Test', id: 'btn-test-game' }),
-                Dom.create('div', { class: 'w-px bg-zinc-700 mx-2 h-4 self-center' }),
+                Dom.create('button', { class: 'btn btn-play', text: '▶ Test', id: 'btn-test-game' }),
+                Dom.create('div', { style: 'width:1px; background:var(--border); margin:0 5px;' }),
                 Dom.create('button', { class: 'btn', text: 'Export', id: 'btn-export-game' })
             ])
         ]);
 
-        // 2. Workspace
-        const workspace = Dom.create('div', { class: 'app-workspace' });
-        
-        // Tab Nav
-        const tabNav = Dom.create('nav', { class: 'tab-nav' });
-        
-        // Main Content Area (Where SceneEditor, MapEditor, etc. live)
-        const tabContent = Dom.create('div', { class: 'tab-content-area' });
+        // 2. Tab Navigation (Matches .nav-tabs)
+        const tabNav = Dom.create('nav', { class: 'nav-tabs' });
 
-        Dom.mount(tabNav, workspace);
-        Dom.mount(tabContent, workspace);
-        Dom.mount(header, app);
-        Dom.mount(workspace, app);
+        // 3. Mount to App
+        app.appendChild(header);
+        app.appendChild(tabNav);
 
-        // 3. Init Tabs
-        TabManager.init(tabNav, tabContent);
+        // 4. Initialize Tabs & Containers
+        // This will create the .content-area divs matching your HTML
+        TabManager.init(tabNav, app);
     }
 };
