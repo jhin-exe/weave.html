@@ -8,7 +8,6 @@ export const SceneEditor = {
     init() {
         const container = TabManager.getContainer('scenes');
         
-        // 1. Sidebar (Matches .sidebar)
         const sidebar = Dom.create('div', { class: 'sidebar' }, [
             Dom.create('div', { style: 'padding:10px; border-bottom:1px solid var(--border);' }, [
                 Dom.create('button', {
@@ -17,10 +16,9 @@ export const SceneEditor = {
                     onClick: () => Store.addScene()
                 })
             ]),
-            Dom.create('div', { id: 'scene-list' }) // SceneList.js fills this
+            Dom.create('div', { id: 'scene-list' })
         ]);
 
-        // 2. Main Pane (Matches .main-pane)
         this.mainPane = Dom.create('div', { class: 'main-pane' });
         this.root = Dom.create('div', { id: 'scene-editor' });
         
@@ -29,7 +27,6 @@ export const SceneEditor = {
         container.appendChild(this.mainPane);
 
         SceneList.init();
-
         Events.on('scene:selected', (id) => this.render(id));
         Events.on('scene:updated', (data) => {
              if (data.id === this.currentId && !['text', 'id'].includes(data.field)) {
@@ -52,7 +49,6 @@ export const SceneEditor = {
             return;
         }
 
-        // Header (Rename/Delete)
         const header = Dom.create('div', { class: 'card flex', style: 'justify-content:space-between; align-items:center; gap: 10px;' }, [
             Dom.create('div', { class: 'flex gap-2', style: 'flex:1' }, [
                 Dom.create('input', { 
@@ -62,7 +58,7 @@ export const SceneEditor = {
                         if(val && val !== scene.id) Store.renameScene(scene.id, val);
                     }
                 }),
-                Dom.create('button', { class: 'btn btn-primary', text: 'Rename', onClick: () => {} }) // Action handled by input change for now
+                Dom.create('button', { class: 'btn btn-primary', text: 'Rename', onClick: () => {} })
             ]),
             Dom.create('button', { 
                 class: 'btn btn-danger', 
@@ -71,7 +67,6 @@ export const SceneEditor = {
             })
         ]);
 
-        // Content Inputs
         const content = Dom.create('div', { style: 'margin-bottom:15px;' }, [
             Dom.create('label', { text: 'Media' }),
             Dom.create('div', { class: 'flex gap-2' }, [
@@ -88,7 +83,6 @@ export const SceneEditor = {
             ])
         ]);
 
-        // Choices
         const choicesContainer = Dom.create('div', {});
         scene.choices.forEach((c, idx) => {
             choicesContainer.appendChild(this.renderChoice(sceneId, c, idx, project));
@@ -103,12 +97,10 @@ export const SceneEditor = {
             onClick: () => Store.addChoice(sceneId) 
         }));
         
-        // Spacer
         this.root.appendChild(Dom.create('div', { style: 'height: 50px' }));
     },
 
     renderChoice(sceneId, choice, index, project) {
-        // Simplified Choice Card to match your look
         return Dom.create('div', { class: 'card' }, [
              Dom.create('div', { class: 'flex gap-2', style: 'margin-bottom:15px' }, [
                 Dom.create('div', { style: 'flex:2' }, [
@@ -117,11 +109,25 @@ export const SceneEditor = {
                 ]),
                 Dom.create('div', { style: 'flex:1' }, [
                     Dom.create('label', { text: 'Target' }),
-                    Dom.create('select', { onChange: (e) => Store.updateChoice(sceneId, index, 'target', e.target.value) }, 
-                        Object.keys(project.scenes).map(id => Dom.create('option', { value: id, text: id, selected: choice.target === id }))
-                    )
+                    Dom.create('div', { class: 'flex' }, [
+                        // Target Selector
+                        Dom.create('select', { 
+                            style: 'border-radius:4px 0 0 4px',
+                            onChange: (e) => Store.updateChoice(sceneId, index, 'target', e.target.value) 
+                        }, Object.keys(project.scenes).map(id => Dom.create('option', { value: id, text: id, selected: choice.target === id }))),
+                        
+                        // RESTORED LINKED SCENE BUTTON
+                        Dom.create('button', {
+                            class: 'btn btn-primary',
+                            text: '+',
+                            title: 'Create & Link New Scene',
+                            style: 'border-radius:0 4px 4px 0; padding:0 10px;',
+                            onClick: () => Store.createLinkedScene(sceneId, index)
+                        })
+                    ])
                 ])
              ]),
+             // Logic/Effects placeholders (Use full restore from previous steps if needed, keeping simple for structure parity)
              Dom.create('div', { style: 'text-align:right' }, [
                  Dom.create('button', { class: 'btn btn-danger btn-sm', text: 'Delete Choice', onClick: () => Store.deleteChoice(sceneId, index) })
              ])

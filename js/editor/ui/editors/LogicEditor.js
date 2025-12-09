@@ -8,13 +8,20 @@ export const LogicEditor = {
         const container = TabManager.getContainer('logic');
         
         this.mainPane = Dom.create('div', { class: 'main-pane' });
-        this.grid = Dom.create('div', { class: 'grid-2', style: { maxWidth: '900px', margin: '0 auto' } });
+        this.grid = Dom.create('div', { class: 'grid-2', style: 'maxWidth:900px; margin:0 auto' });
         
         this.mainPane.appendChild(this.grid);
         container.appendChild(this.mainPane);
 
         Events.on('project:updated', () => this.render());
         Events.on('tab:changed', (id) => { if(id === 'logic') this.render(); });
+    },
+
+    filterList(val, containerId) {
+        const items = document.querySelectorAll(`#${containerId} .list-item`);
+        items.forEach(item => { 
+            item.style.display = item.innerText.toLowerCase().includes(val.toLowerCase()) ? 'flex' : 'none'; 
+        });
     },
 
     render() {
@@ -35,6 +42,12 @@ export const LogicEditor = {
                     }
                 })
             ]),
+            // RESTORED SEARCH
+            Dom.create('input', { 
+                placeholder: 'Search variables...', 
+                style: 'margin-bottom:10px;',
+                onInput: (e) => this.filterList(e.target.value, 'var-list')
+            }),
             Dom.create('div', { id: 'var-list' })
         ]);
 
@@ -62,6 +75,12 @@ export const LogicEditor = {
                     }
                 })
             ]),
+            // RESTORED SEARCH
+            Dom.create('input', { 
+                placeholder: 'Search items...', 
+                style: 'margin-bottom:10px;',
+                onInput: (e) => this.filterList(e.target.value, 'item-list')
+            }),
             Dom.create('div', { id: 'item-list' })
         ]);
 
