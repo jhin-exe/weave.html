@@ -9,6 +9,10 @@ export const TestRunner = {
         
         // Ensure overlay exists
         this.createOverlay();
+
+        // EXPOSE CLOSE FUNCTION GLOBALLY FOR HTML ONCLICK HANDLERS
+        window.app = window.app || {};
+        window.app.closeTest = () => this.close();
     },
 
     createOverlay() {
@@ -59,10 +63,6 @@ export const TestRunner = {
         
         // Expose for the inline onclick handlers in Runtime.render() buttons
         window.activeRuntime = runtime; 
-        
-        // EXPOSE CLOSE FUNCTION GLOBALLY FOR HTML ONCLICK HANDLERS IF NEEDED
-        window.app = window.app || {};
-        window.app.closeTest = () => this.close();
     },
 
     close() {
