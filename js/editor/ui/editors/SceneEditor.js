@@ -116,3 +116,5 @@ export const SceneEditor = {
         ]);
     }
 };
+
+SceneEditor.init();
