@@ -59,13 +59,22 @@ header {
 #scene-list { flex: 1; overflow-y: auto; }
 .main-pane { flex: 1; overflow-y: auto; padding: 30px; position: relative; display: flex; flex-direction: column; }
 
-/* --- GRID & DESIGN LAYOUTS (These were missing!) --- */
+/* --- GRID & DESIGN LAYOUTS --- */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-
 .design-split { display: grid; grid-template-columns: 350px 1fr; height: 100%; width: 100%; }
 .design-controls { padding: 20px; overflow-y: auto; background: var(--bg-app); border-right: 1px solid var(--border); }
 .design-preview { background: #000; position: relative; overflow: hidden; display: flex; flex-direction: column; width: 100%; height: 100%; }
 .preview-wrapper { width: 100%; height: 100%; flex: 1; position: relative; }
+
+/* --- LOGIC UI (Restored) --- */
+.logic-group { border: 1px solid var(--border); padding: 25px 15px 15px; margin-bottom: 15px; position: relative; background: rgba(255,255,255,0.03); border-radius: 4px; margin-top: 15px; }
+.logic-header { position: absolute; top: -10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; }
+.logic-label { background: var(--bg-app); color: var(--text-muted); border: 1px solid var(--border); padding: 2px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; text-transform: uppercase; }
+.logic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.divider { display: flex; align-items: center; text-align: center; color: var(--text-muted); font-size: 10px; margin: 15px 0; font-weight: bold; }
+.divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px dashed #333; }
+.divider:not(:empty)::before { margin-right: .5em; }
+.divider:not(:empty)::after { margin-left: .5em; }
 
 /* --- COMPONENTS --- */
 .btn { 
@@ -103,6 +112,10 @@ header {
 .map-path { fill: none; stroke: #333; stroke-width: 2px; transition: stroke 0.2s, stroke-width 0.2s; }
 .map-path.active-path { stroke: var(--success); stroke-width: 3px; z-index: 9; }
 .map-node.start-node { border-left: 3px solid var(--primary); }
+
+/* --- TEST OVERLAY (Restored) --- */
+#play-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; display: flex; flex-direction: column; }
+.play-bar { padding: 8px 20px; background: #111; border-bottom: 1px solid #333; text-align: right; }
 
 /* --- UTILITIES --- */
 .hidden { display: none !important; }
