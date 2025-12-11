@@ -1,9 +1,5 @@
 import { Store } from '../data/Store.js';
 
-/**
- * Exporter.js
- * Bundles the game engine and project data into a single HTML file.
- */
 export const Exporter = {
     init() {
         const btn = document.getElementById('btn-export-game');
@@ -20,7 +16,6 @@ export const Exporter = {
 
         try {
             // 1. Fetch Source Files
-            // We fetch the raw text of the core modules so we can embed them.
             const [parserSrc, audioSrc, runtimeSrc, cssSrc] = await Promise.all([
                 this.fetchFile('./js/core/Parser.js'),
                 this.fetchFile('./js/core/AudioController.js'),
@@ -28,14 +23,11 @@ export const Exporter = {
                 this.fetchFile('./css/themes.css')
             ]);
 
-            // 2. Process Scripts (Strip Imports/Exports)
-            // We need to turn ES Modules into standard classes/objects for the single file.
-            
+            // 2. Process Scripts
             const cleanParser = this.stripModule(parserSrc, 'const Parser');
             const cleanAudio = this.stripModule(audioSrc, 'class AudioController');
             
-            // Runtime needs extra care because it imports the others. 
-            // We remove the import lines entirely.
+            // Remove imports from Runtime
             let cleanRuntime = this.stripModule(runtimeSrc, 'class Runtime');
             cleanRuntime = cleanRuntime.replace(/import .* from .*/g, '');
 
@@ -47,7 +39,7 @@ export const Exporter = {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${project.meta.title}</title>
-    <link href="https://fonts.googleapis.com/css2?family=${project.theme.font.replace(' ', '+')}:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=${project.theme.font.replace(/\s+/g, '+')}:wght@400;700&display=swap" rel="stylesheet">
     <style>
         ${cssSrc}
         /* User Custom CSS */
@@ -60,7 +52,7 @@ export const Exporter = {
             --rt-border: ${project.theme.border};
             --rt-font: '${project.theme.font}', sans-serif;
         }
-        body { margin: 0; background: var(--rt-bg); color: var(--rt-text); height: 100vh; overflow: hidden; }
+        body { margin: 0; background: var(--rt-bg); color: var(--rt-text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
     </style>
 </head>
 <body>
@@ -83,6 +75,9 @@ export const Exporter = {
             const root = document.getElementById('game-root');
             const runtime = new Runtime(root);
             runtime.init(projectData);
+            
+            // EXPOSE GLOBALLY FOR BUTTONS
+            window.activeRuntime = runtime;
         };
     </script>
 </body>
@@ -111,12 +106,7 @@ export const Exporter = {
         return await res.text();
     },
 
-    /**
-     * Removes "export" keywords to make code runnable in a simple script tag.
-     */
     stripModule(source, declarationStart) {
-        // Replace "export const Parser" with "const Parser"
-        // Replace "export class Runtime" with "class Runtime"
         return source.replace(new RegExp(`export ${declarationStart}`), declarationStart);
     }
 };
