@@ -17,27 +17,29 @@ class StoreManager {
         }, 0);
     }
 
-    loadData(data) {
-        this.project = data;
-        this.activeSceneId = data.config.startSceneId;
-        Events.emit('project:loaded', this.project);
-        Events.emit('scene:selected', this.activeSceneId);
-    }
-
-    // --- SCENES ---
+    // --- SCENE MANAGEMENT ---
     addScene() {
         const id = Id.generate('scene');
-        // Added default x/y for map
-        this.project.scenes[id] = { id, text: "...", image: "", audio: "", choices: [], x: 100, y: 100 };
+        this.project.scenes[id] = { 
+            id, 
+            text: "...", 
+            image: "", 
+            audio: "", 
+            choices: [],
+            x: 100, // Default Map Pos
+            y: 100 
+        };
         Events.emit('project:updated');
         this.selectScene(id);
     }
 
-    // NEW: For dragging nodes
     updateScenePosition(id, x, y) {
-        if (!this.project.scenes[id]) return;
-        this.project.scenes[id].x = x;
-        this.project.scenes[id].y = y;
+        if (this.project.scenes[id]) {
+            this.project.scenes[id].x = x;
+            this.project.scenes[id].y = y;
+            // Note: We do NOT emit 'project:updated' here to prevent lag.
+            // The MapEditor handles the visual update during drag.
+        }
     }
 
     selectScene(id) {
@@ -53,10 +55,11 @@ class StoreManager {
     }
 
     renameScene(oldId, newId) {
-        if (!newId || this.project.scenes[newId]) return alert("Invalid or existing ID.");
+        if (!newId || this.project.scenes[newId]) return alert("Invalid ID");
         this.project.scenes[newId] = this.project.scenes[oldId];
         this.project.scenes[newId].id = newId;
         delete this.project.scenes[oldId];
+        // Refactor links
         Object.values(this.project.scenes).forEach(s => {
             s.choices.forEach(c => { if(c.target === oldId) c.target = newId; });
         });
@@ -68,11 +71,11 @@ class StoreManager {
 
     deleteScene(id) {
         delete this.project.scenes[id];
-        Events.emit('project:loaded'); 
+        Events.emit('project:loaded');
         Events.emit('scene:selected', null);
     }
 
-    // --- CHOICES ---
+    // --- CHOICE MANAGEMENT ---
     addChoice(sceneId) {
         this.project.scenes[sceneId].choices.push({
             id: Id.generate('ch'), text: "Choice", target: sceneId, logicGroups: [], effects: []
@@ -80,7 +83,7 @@ class StoreManager {
         Events.emit('scene:updated', { id: sceneId });
     }
 
-    // NEW: For visual linking
+    // NEW: For Visual Linking
     addChoiceWithTarget(sceneId, targetId) {
         this.project.scenes[sceneId].choices.push({
             id: Id.generate('ch'), 
@@ -105,14 +108,14 @@ class StoreManager {
     createLinkedScene(sceneId, choiceIndex) {
         const choice = this.project.scenes[sceneId].choices[choiceIndex];
         const newId = `${sceneId}_${choiceIndex + 1}`;
-        if (this.project.scenes[newId]) return alert("Scene ID already exists.");
+        if (this.project.scenes[newId]) return alert("ID Exists");
         this.project.scenes[newId] = { id: newId, text: "New branch...", image: "", audio: "", choices: [], x: 100, y: 100 };
         choice.target = newId;
         Events.emit('project:updated');
         this.selectScene(newId);
     }
 
-    // --- LOGIC & EFFECTS (Legacy Inline Support) ---
+    // --- LOGIC / EFFECTS (Pass-throughs) ---
     addLogicGroup(sid, idx) {
         const c = this.project.scenes[sid].choices[idx];
         if(!c.logicGroups) c.logicGroups = [];
@@ -150,10 +153,9 @@ class StoreManager {
         Events.emit('scene:updated', { id: sid });
     }
 
-    // --- META ---
     updateTheme(k, v) { this.project.theme[k] = v; Events.emit('theme:updated'); }
     updateConfig(k, v) { this.project.config[k] = v; }
-    save() { }
+    save() { /* No persistence as requested */ }
     getProject() { return this.project; }
 }
 

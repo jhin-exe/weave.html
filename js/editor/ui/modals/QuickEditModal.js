@@ -7,12 +7,12 @@ export const QuickEditModal = {
         const scene = project.scenes[sceneId];
         if (!scene) return;
 
-        this.hide(); // Close existing
+        this.hide(); 
 
         const modal = Dom.create('div', { 
             id: 'quick-edit-modal', 
             class: 'card',
-            style: `position:absolute; left:${x}px; top:${y}px; width:300px; z-index:1000; box-shadow:0 10px 30px #000; border:1px solid var(--accent); background:var(--bg-panel);`
+            style: `position:fixed; left:${x}px; top:${y}px; width:300px; z-index:1000; box-shadow:0 10px 30px #000; border:1px solid var(--accent); background:var(--bg-panel); margin:0; padding:10px;`
         });
 
         const header = Dom.create('div', { class: 'flex justify-between items-center mb-2' }, [
@@ -21,10 +21,10 @@ export const QuickEditModal = {
         ]);
 
         const form = Dom.create('div', { class: 'flex-col gap-2' }, [
-            Dom.create('label', { text: 'Content', style:'font-size:10px; color:var(--text-muted);' }),
+            Dom.create('label', { text: 'Quick Edit', style:'font-size:10px; color:var(--text-muted);' }),
             Dom.create('textarea', { 
                 value: scene.text, 
-                style: 'height:80px;',
+                style: 'height:80px; width:100%;',
                 onInput: (e) => Store.updateScene(sceneId, 'text', e.target.value) 
             }),
             Dom.create('input', { 
