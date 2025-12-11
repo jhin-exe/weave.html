@@ -27,9 +27,19 @@ class StoreManager {
     // --- SCENES ---
     addScene() {
         const id = Id.generate('scene');
-        this.project.scenes[id] = { id, text: "...", image: "", audio: "", choices: [] };
+        // Added default X/Y for map placement
+        this.project.scenes[id] = { id, text: "...", image: "", audio: "", choices: [], x: 100, y: 100 };
         Events.emit('project:updated');
         this.selectScene(id);
+    }
+
+    // New method for dragging
+    updateScenePosition(id, x, y) {
+        if (!this.project.scenes[id]) return;
+        this.project.scenes[id].x = x;
+        this.project.scenes[id].y = y;
+        // We don't emit 'project:updated' here to avoid re-rendering the whole map while dragging
+        // The MapEditor will handle the visual update, and call save() on drop.
     }
 
     selectScene(id) {
@@ -72,6 +82,18 @@ class StoreManager {
         Events.emit('scene:updated', { id: sceneId });
     }
 
+    // Method to support visual linking
+    addChoiceWithTarget(sceneId, targetId) {
+        this.project.scenes[sceneId].choices.push({
+            id: Id.generate('ch'), 
+            text: `Go to ${targetId}`, 
+            target: targetId, 
+            logicGroups: [], 
+            effects: []
+        });
+        Events.emit('scene:updated', { id: sceneId });
+    }
+
     updateChoice(sceneId, index, field, value) {
         this.project.scenes[sceneId].choices[index][field] = value;
         Events.emit('scene:updated', { id: sceneId });
@@ -86,54 +108,45 @@ class StoreManager {
         const choice = this.project.scenes[sceneId].choices[choiceIndex];
         const newId = `${sceneId}_${choiceIndex + 1}`;
         if (this.project.scenes[newId]) return alert("Scene ID already exists.");
-        this.project.scenes[newId] = { id: newId, text: "New branch...", image: "", audio: "", choices: [] };
+        this.project.scenes[newId] = { id: newId, text: "New branch...", image: "", audio: "", choices: [], x: 100, y: 100 };
         choice.target = newId;
         Events.emit('project:updated');
         this.selectScene(newId);
     }
 
-    // --- LOGIC & EFFECTS (Restored from index.html) ---
-    
+    // --- LOGIC & EFFECTS ---
     addLogicGroup(sid, idx) {
         const c = this.project.scenes[sid].choices[idx];
         if(!c.logicGroups) c.logicGroups = [];
         c.logicGroups.push([{type:'hasItem', key:'', val:''}]);
         Events.emit('scene:updated', { id: sid });
     }
-
     deleteLogicGroup(sid, cIdx, gIdx) {
         this.project.scenes[sid].choices[cIdx].logicGroups.splice(gIdx, 1);
         Events.emit('scene:updated', { id: sid });
     }
-
     addCondition(sid, idx, gIdx) {
         this.project.scenes[sid].choices[idx].logicGroups[gIdx].push({type:'hasItem', key:'', val:''});
         Events.emit('scene:updated', { id: sid });
     }
-
     updateCondition(sid, idx, gIdx, cIdx, field, val) {
         this.project.scenes[sid].choices[idx].logicGroups[gIdx][cIdx][field] = val;
-        // No emit needed for every keystroke if we want, but safe to add
     }
-
     removeCondition(sid, idx, gIdx, cIdx) {
         const grp = this.project.scenes[sid].choices[idx].logicGroups[gIdx];
         grp.splice(cIdx, 1);
         if(grp.length === 0) this.project.scenes[sid].choices[idx].logicGroups.splice(gIdx, 1);
         Events.emit('scene:updated', { id: sid });
     }
-
     addEffect(sid, idx) {
         const c = this.project.scenes[sid].choices[idx];
         if(!c.effects) c.effects = [];
         c.effects.push({type:'varAdd', key:'', val:1});
         Events.emit('scene:updated', { id: sid });
     }
-
     updateEffect(sid, idx, eIdx, field, val) {
         this.project.scenes[sid].choices[idx].effects[eIdx][field] = val;
     }
-
     removeEffect(sid, idx, eIdx) {
         this.project.scenes[sid].choices[idx].effects.splice(eIdx, 1);
         Events.emit('scene:updated', { id: sid });
