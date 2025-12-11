@@ -8,8 +8,9 @@ class App {
     }
 
     async init() {
-        console.log("%c Weave.html %c v4.0 ", "background: #fff; color: #000; font-weight: bold;", "background: #333; color: #fff;");
-        
+        console.log("%c Weave.html %c v4.0 ", "background: #fff; color: #000; font-weight: bold; padding: 2px 4px;", "background: #333; color: #fff; padding: 2px 4px;");
+        console.log("🚀 Initializing Engine...");
+
         Layout.init();
 
         try {
@@ -20,12 +21,13 @@ class App {
                 import('./editor/ui/editors/LogicEditor.js'),
                 import('./editor/ui/editors/DesignEditor.js'),
                 import('./editor/ui/editors/SettingsEditor.js'),
-                import('./editor/ui/modals/QuickEditModal.js'), // NEW
+                import('./editor/ui/modals/QuickEditModal.js'),
                 import('./editor/TestRunner.js'),
                 import('./editor/Exporter.js')
             ]);
+            console.log("✅ Modules Loaded");
         } catch (err) {
-            console.error("Failed load:", err);
+            console.error("❌ Failed to load editor modules:", err);
         }
 
         Store.init();

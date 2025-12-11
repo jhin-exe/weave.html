@@ -21,7 +21,7 @@ export const QuickEditModal = {
         ]);
 
         const form = Dom.create('div', { class: 'flex-col gap-2' }, [
-            Dom.create('label', { text: 'Quick Edit Content', style:'font-size:10px; color:var(--text-muted);' }),
+            Dom.create('label', { text: 'Content', style:'font-size:10px; color:var(--text-muted);' }),
             Dom.create('textarea', { 
                 value: scene.text, 
                 style: 'height:80px;',

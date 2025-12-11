@@ -8,6 +8,7 @@ export const MapEditor = {
     init() {
         const container = TabManager.getContainer('map');
         
+        // Relative container to hold everything
         this.mapContainer = Dom.create('div', { id: 'map-container' });
         this.mapCanvas = Dom.create('div', { id: 'map-canvas' });
         
@@ -21,13 +22,13 @@ export const MapEditor = {
         this.mapContainer.appendChild(this.mapCanvas);
         container.appendChild(this.mapContainer);
 
-        // Sidebar Tools (Keep simple scene creator)
+        // Sidebar Tools - Moved down to avoid header overlap
         const tools = Dom.create('div', { 
-            style: 'position:absolute; top:10px; left:10px; display:flex; flex-direction:column; gap:5px; z-index:20;' 
+            style: 'position:absolute; top:20px; left:20px; display:flex; flex-direction:column; gap:5px; z-index:20;' 
         }, [
             Dom.create('button', { class: 'btn btn-sm btn-primary', text: '+ Scene', onClick: () => Store.addScene() })
         ]);
-        container.appendChild(tools);
+        this.mapContainer.appendChild(tools); // Append to mapContainer, not container
 
         this.tracedNodeId = null;
         this.state = {
@@ -107,7 +108,7 @@ export const MapEditor = {
         this.state.draggingNode = {
             id: id,
             el: nodeEl,
-            // Offset from top-left of node
+            // Capture initial mouse offset relative to the node
             offsetX: e.clientX - nodeEl.getBoundingClientRect().left,
             offsetY: e.clientY - nodeEl.getBoundingClientRect().top
         };
@@ -116,19 +117,17 @@ export const MapEditor = {
     },
     updateDrag(e) {
         const s = this.state.draggingNode;
-        const containerRect = this.mapContainer.getBoundingClientRect();
+        // Calculate X/Y relative to the canvas (which is static size but scrolled)
+        // We need position relative to mapCanvas top-left
         
-        // Calculate position relative to container content
-        const x = e.clientX - containerRect.left + this.mapContainer.scrollLeft - s.offsetX;
-        const y = e.clientY - containerRect.top + this.mapContainer.scrollTop - s.offsetY;
+        const canvasRect = this.mapCanvas.getBoundingClientRect();
+        
+        // e.clientX is viewport x. canvasRect.left is viewport x of canvas.
+        const x = e.clientX - canvasRect.left - s.offsetX;
+        const y = e.clientY - canvasRect.top - s.offsetY;
 
         s.el.style.left = x + 'px';
         s.el.style.top = y + 'px';
-        
-        // We update store silently so links draw correctly on re-render (optional)
-        // Or we can just move the element and update store on drop.
-        // For smoother links, we should probably update store + re-render links, but that's heavy.
-        // Let's just move the element for now.
     },
     stopDrag() {
         if (!this.state.draggingNode) return;
@@ -161,7 +160,7 @@ export const MapEditor = {
         this.svgLayer.appendChild(path);
         
         const rect = e.target.getBoundingClientRect();
-        const containerRect = this.mapCanvas.getBoundingClientRect(); // Canvas is the relative parent
+        const containerRect = this.mapCanvas.getBoundingClientRect(); 
         
         this.state.drawingLink = {
             sourceId: id,
@@ -187,10 +186,15 @@ export const MapEditor = {
         s.path.remove();
         this.state.drawingLink = null;
         
-        const targetEl = e.target.closest('.map-node');
+        // Check if dropped on a node
+        // We use document.elementFromPoint because the mouseup target might be the svg line itself
+        // temporarily, or the canvas.
+        const targetEl = document.elementFromPoint(e.clientX, e.clientY)?.closest('.map-node');
+        
         if (targetEl) {
             const targetId = targetEl.dataset.id;
             if (targetId && targetId !== s.sourceId) {
+                // Call store to add choice
                 Store.addChoiceWithTarget(s.sourceId, targetId);
             }
         }
@@ -204,7 +208,6 @@ export const MapEditor = {
         if(!project) return;
 
         // BFS Layout for defaults, but prefer stored X/Y
-        // We run BFS to calculate levels, but only use them if X/Y are missing (0/0)
         const levels = {}; 
         const queue = [{ id: project.config.startSceneId, level: 0 }];
         const visited = new Set();
@@ -230,25 +233,13 @@ export const MapEditor = {
         Object.keys(levelGroups).sort((a,b)=>a-b).forEach(lvl => {
             levelGroups[lvl].forEach((id, idx) => {
                 const s = project.scenes[id];
-                // Use stored if > 0 (assuming 0,0 is default/invalid) or specifically set
-                // Just checking if x exists in your object structure. 
-                // Store init sets x=100, y=100.
-                // If it's effectively default/clashing, apply layout.
-                // Simple heuristic: If we haven't dragged it, use auto layout.
-                
-                // For now, let's respect X/Y if they are not 100/100 (default) OR if we want to enforce layout on load.
-                // Better approach: If X/Y exist, use them. If not, calculate. 
-                // Since I added X/Y to Store, they exist. 
-                // Let's use them directly.
                 
                 let x = s.x;
                 let y = s.y;
                 
-                // If this is a fresh load of an old project, X/Y might be undefined.
                 if (x === undefined || y === undefined) {
                     x = 50 + (lvl * 220);
                     y = 50 + (idx * 80);
-                    // Update store so it sticks next time
                     Store.updateScenePosition(id, x, y);
                 }
 
@@ -262,13 +253,11 @@ export const MapEditor = {
                     style: { left: x + 'px', top: y + 'px' },
                     
                     // Interaction Handlers
-                    // Left Click -> Quick Edit (via bubble event, check stopPropagation in Drag)
                     onClick: (e) => { 
                         e.stopPropagation();
                         // Only show if not dragging
                         if (!this.state.draggingNode) {
-                            const rect = el.getBoundingClientRect();
-                            // Pass page coordinates to modal
+                            // Show Quick Edit Modal
                             QuickEditModal.show(id, e.pageX + 20, e.pageY);
                         }
                     },
@@ -296,26 +285,30 @@ export const MapEditor = {
         Object.keys(project.scenes).forEach(id => {
             const p1 = positions[id];
             if(!p1) return;
-            project.scenes[id].choices.forEach((c, i) => {
+            const scene = project.scenes[id];
+            
+            scene.choices.forEach((c, i) => {
+                if(!c.target || !project.scenes[c.target]) return;
+                
                 const p2 = positions[c.target];
-                if(p2) {
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("class", "map-path");
-                    path.setAttribute("id", `link-${id}-${c.target}-${i}`); // ID for trace
-                    
-                    // Source: Right side of node
-                    const startX = p1.x + 140; 
-                    const startY = p1.y + 25; // Middle of node roughly
-                    
-                    // Target: Left side of node
-                    const endX = p2.x; 
-                    const endY = p2.y + 25;
+                if(!p2) return;
+                
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("class", "map-path");
+                path.setAttribute("id", `link-${id}-${c.target}-${i}`); // ID for trace
+                
+                // Source: Right side of node
+                const startX = p1.x + 140; 
+                const startY = p1.y + 25; // Middle of node roughly
+                
+                // Target: Left side of node
+                const endX = p2.x; 
+                const endY = p2.y + 25;
 
-                    const c1x = startX + 50; 
-                    const c2x = endX - 50;
-                    path.setAttribute("d", `M ${startX} ${startY} C ${c1x} ${startY}, ${c2x} ${endY}, ${endX} ${endY}`);
-                    this.svgLayer.appendChild(path);
-                }
+                const c1x = startX + 50; 
+                const c2x = endX - 50;
+                path.setAttribute("d", `M ${startX} ${startY} C ${c1x} ${startY}, ${c2x} ${endY}, ${endX} ${endY}`);
+                this.svgLayer.appendChild(path);
             });
         });
     },
@@ -330,17 +323,19 @@ export const MapEditor = {
         const visited = new Set();
         const activeNodes = new Set();
         const activeLinks = new Set();
-        const project = Store.getProject();
         
-        // Rebuild parent map freshly
+        const project = Store.getProject();
         const parents = {};
         Object.keys(project.scenes).forEach(id => {
-            project.scenes[id].choices.forEach(c => {
-                if(c.target) {
-                    if(!parents[c.target]) parents[c.target] = [];
-                    if(!parents[c.target].includes(id)) parents[c.target].push(id);
-                }
-            });
+            const n = project.scenes[id];
+            if(n.choices) {
+                n.choices.forEach(c => {
+                    if(c.target) {
+                        if(!parents[c.target]) parents[c.target] = [];
+                        if(!parents[c.target].includes(id)) parents[c.target].push(id);
+                    }
+                });
+            }
         });
 
         const crawl = (id) => {
@@ -350,7 +345,6 @@ export const MapEditor = {
             if (id === project.config.startSceneId && id !== targetId) return;
             const p = parents[id] || [];
             p.forEach(pid => {
-                // Find specific choice index for link ID
                 project.scenes[pid].choices.forEach((c, idx) => {
                     if(c.target === id) activeLinks.add(`link-${pid}-${id}-${idx}`);
                 });

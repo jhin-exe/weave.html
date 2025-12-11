@@ -38,7 +38,6 @@ class StoreManager {
         if (!this.project.scenes[id]) return;
         this.project.scenes[id].x = x;
         this.project.scenes[id].y = y;
-        // No emit here to prevent loop, MapEditor handles visual update
     }
 
     selectScene(id) {
@@ -113,7 +112,7 @@ class StoreManager {
         this.selectScene(newId);
     }
 
-    // --- LOGIC & EFFECTS ---
+    // --- LOGIC & EFFECTS (Legacy Inline Support) ---
     addLogicGroup(sid, idx) {
         const c = this.project.scenes[sid].choices[idx];
         if(!c.logicGroups) c.logicGroups = [];
