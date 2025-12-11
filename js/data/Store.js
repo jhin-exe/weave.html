@@ -27,19 +27,18 @@ class StoreManager {
     // --- SCENES ---
     addScene() {
         const id = Id.generate('scene');
-        // Added default X/Y for map placement
+        // Added default x/y for map
         this.project.scenes[id] = { id, text: "...", image: "", audio: "", choices: [], x: 100, y: 100 };
         Events.emit('project:updated');
         this.selectScene(id);
     }
 
-    // New method for dragging
+    // NEW: For dragging nodes
     updateScenePosition(id, x, y) {
         if (!this.project.scenes[id]) return;
         this.project.scenes[id].x = x;
         this.project.scenes[id].y = y;
-        // We don't emit 'project:updated' here to avoid re-rendering the whole map while dragging
-        // The MapEditor will handle the visual update, and call save() on drop.
+        // No emit here to prevent loop, MapEditor handles visual update
     }
 
     selectScene(id) {
@@ -82,7 +81,7 @@ class StoreManager {
         Events.emit('scene:updated', { id: sceneId });
     }
 
-    // Method to support visual linking
+    // NEW: For visual linking
     addChoiceWithTarget(sceneId, targetId) {
         this.project.scenes[sceneId].choices.push({
             id: Id.generate('ch'), 

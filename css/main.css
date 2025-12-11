@@ -144,20 +144,16 @@ header {
 }
 .link-handle:hover {
     background: var(--accent);
-    transform: translateY(-50%) scale(1.2);
+    transform: scale(1.2) translateY(-40%); /* adjust transform order */
 }
 
-.map-node {
-    /* Ensure existing styles allow absolute positioning */
-    user-select: none; /* Prevent text selection while dragging */
-}
-
-/* --- QUICK EDIT MODAL --- */
+/* Quick Edit Modal */
 #quick-edit-modal {
-    background: var(--bg-panel);
     animation: fadeIn 0.1s ease-out;
 }
-#quick-edit-modal textarea {
-    font-family: var(--font-ui);
-    resize: none;
+#quick-edit-modal input, #quick-edit-modal textarea {
+    font-size: 11px;
+    background: #111 !important;
 }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }

@@ -21,7 +21,15 @@ export const MapEditor = {
         this.mapContainer.appendChild(this.mapCanvas);
         container.appendChild(this.mapContainer);
 
-        // Interaction State
+        // Sidebar Tools (Keep simple scene creator)
+        const tools = Dom.create('div', { 
+            style: 'position:absolute; top:10px; left:10px; display:flex; flex-direction:column; gap:5px; z-index:20;' 
+        }, [
+            Dom.create('button', { class: 'btn btn-sm btn-primary', text: '+ Scene', onClick: () => Store.addScene() })
+        ]);
+        container.appendChild(tools);
+
+        this.tracedNodeId = null;
         this.state = {
             draggingNode: null,
             drawingLink: null,
@@ -30,36 +38,36 @@ export const MapEditor = {
             tempLine: null
         };
 
-        this.attachListeners();
+        this.initInteraction();
 
         Events.on('tab:changed', (id) => { if(id === 'map') this.render(); });
         Events.on('project:updated', () => { if(TabManager.activeTab === 'map') this.render(); });
     },
 
-    attachListeners() {
+    initInteraction() {
         const cont = this.mapContainer;
 
-        // 1. Mouse Down (Router)
+        // MOUSE DOWN ROUTER
         cont.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('link-handle')) {
                 this.startLinking(e);
             } else if (e.target.closest('.map-node')) {
-                // If checking specifically for dragging handle, or just whole node?
-                // Let's say drag whole node unless it was the link handle
+                // If right click, ignore drag, let context menu fire
+                if (e.button === 2) return; 
                 this.startDragging(e);
             } else {
                 this.startPanning(e);
             }
         });
 
-        // 2. Mouse Move (Router)
+        // MOUSE MOVE ROUTER
         document.addEventListener('mousemove', (e) => {
             if (this.state.draggingNode) this.updateDrag(e);
             else if (this.state.drawingLink) this.updateLink(e);
             else if (this.state.panning) this.updatePan(e);
         });
 
-        // 3. Mouse Up (Router)
+        // MOUSE UP ROUTER
         document.addEventListener('mouseup', (e) => {
             if (this.state.draggingNode) this.stopDrag();
             if (this.state.drawingLink) this.stopLinking(e);
@@ -69,6 +77,7 @@ export const MapEditor = {
 
     // --- PANNING ---
     startPanning(e) {
+        if(e.button !== 0) return; // Only left click pan
         this.state.panning = true;
         this.mapContainer.style.cursor = 'grabbing';
         this.state.startX = e.pageX - this.mapContainer.offsetLeft;
@@ -92,63 +101,51 @@ export const MapEditor = {
 
     // --- DRAGGING NODE ---
     startDragging(e) {
-        if(e.button !== 0) return;
         const nodeEl = e.target.closest('.map-node');
         const id = nodeEl.dataset.id;
         
         this.state.draggingNode = {
             id: id,
             el: nodeEl,
-            offsetX: e.clientX - nodeEl.offsetLeft,
-            offsetY: e.clientY - nodeEl.offsetTop
+            // Offset from top-left of node
+            offsetX: e.clientX - nodeEl.getBoundingClientRect().left,
+            offsetY: e.clientY - nodeEl.getBoundingClientRect().top
         };
         nodeEl.style.zIndex = 100;
-        QuickEditModal.hide(); // Hide popup if dragging
+        QuickEditModal.hide(); 
     },
     updateDrag(e) {
         const s = this.state.draggingNode;
-        // Calculate new position relative to canvas
-        // Note: mapCanvas is static size, we just move absolute div
-        // We need to account for container scroll if the mouse leaves? 
-        // Simpler: Just map mouse client to offset
-        
-        // Correct logic: Mouse Position in Canvas Space
-        const rect = this.mapCanvas.getBoundingClientRect();
-        const x = e.clientX - rect.left - (s.offsetX - (e.clientX - e.target.getBoundingClientRect().left)); // Approximated
-        
-        // Simple relative move:
         const containerRect = this.mapContainer.getBoundingClientRect();
-        const scrollLeft = this.mapContainer.scrollLeft;
-        const scrollTop = this.mapContainer.scrollTop;
         
-        const newX = (e.clientX - containerRect.left + scrollLeft) - (s.offsetX - (s.el.getBoundingClientRect().left - containerRect.left)); // Getting messy.
-        
-        // Easier: Just update style.left/top based on movement
-        // Let's use the standard "position absolute" drag logic
-        const mapX = e.pageX - this.mapCanvas.offsetParent.offsetLeft + this.mapContainer.scrollLeft; 
-        // Wait, offsetParent might be body. 
-        
-        // Let's try simpler: 
-        const xPos = e.clientX + this.mapContainer.scrollLeft - this.mapContainer.getBoundingClientRect().left - 20; // 20 is arbitrary handle offset
-        const yPos = e.clientY + this.mapContainer.scrollTop - this.mapContainer.getBoundingClientRect().top - 10;
+        // Calculate position relative to container content
+        const x = e.clientX - containerRect.left + this.mapContainer.scrollLeft - s.offsetX;
+        const y = e.clientY - containerRect.top + this.mapContainer.scrollTop - s.offsetY;
 
-        s.el.style.left = xPos + 'px';
-        s.el.style.top = yPos + 'px';
+        s.el.style.left = x + 'px';
+        s.el.style.top = y + 'px';
         
-        // Trigger redraw of lines? Ideally yes, but expensive.
-        // For MVP, we redraw on drop.
+        // We update store silently so links draw correctly on re-render (optional)
+        // Or we can just move the element and update store on drop.
+        // For smoother links, we should probably update store + re-render links, but that's heavy.
+        // Let's just move the element for now.
     },
     stopDrag() {
         if (!this.state.draggingNode) return;
         const id = this.state.draggingNode.id;
         const el = this.state.draggingNode.el;
         
-        // Update Store
-        Store.updateScenePosition(id, parseInt(el.style.left), parseInt(el.style.top));
+        const x = parseInt(el.style.left);
+        const y = parseInt(el.style.top);
+
+        Store.updateScenePosition(id, x, y);
         
         el.style.zIndex = '';
         this.state.draggingNode = null;
-        this.render(); // Redraw lines
+        
+        // Save and Redraw links
+        Store.save();
+        this.render(); 
     },
 
     // --- VISUAL LINKING ---
@@ -157,18 +154,19 @@ export const MapEditor = {
         e.preventDefault();
         const id = e.target.dataset.id;
         
-        // Create Temp Line
+        // Create Temp SVG Line
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("class", "map-path");
-        path.setAttribute("style", "stroke:var(--accent); stroke-dasharray:5,5;");
+        path.setAttribute("style", "stroke:var(--accent); stroke-dasharray:5,5; pointer-events:none;");
         this.svgLayer.appendChild(path);
         
         const rect = e.target.getBoundingClientRect();
-        const containerRect = this.mapCanvas.getBoundingClientRect();
+        const containerRect = this.mapCanvas.getBoundingClientRect(); // Canvas is the relative parent
         
         this.state.drawingLink = {
             sourceId: id,
             path: path,
+            // Start relative to canvas
             startX: rect.left + rect.width/2 - containerRect.left,
             startY: rect.top + rect.height/2 - containerRect.top
         };
@@ -176,6 +174,7 @@ export const MapEditor = {
     updateLink(e) {
         const s = this.state.drawingLink;
         const containerRect = this.mapCanvas.getBoundingClientRect();
+        
         const endX = e.clientX - containerRect.left;
         const endY = e.clientY - containerRect.top;
         
@@ -188,7 +187,6 @@ export const MapEditor = {
         s.path.remove();
         this.state.drawingLink = null;
         
-        // Check if dropped on a node
         const targetEl = e.target.closest('.map-node');
         if (targetEl) {
             const targetId = targetEl.dataset.id;
@@ -205,67 +203,170 @@ export const MapEditor = {
         const project = Store.getProject();
         if(!project) return;
 
-        // 1. Calculate Positions (Use stored X/Y or Auto-layout if missing)
-        // If X/Y is 0/undefined, we might want to run BFS once to set defaults?
-        // For now, let's assume they have defaults from Store.addScene or previous render.
+        // BFS Layout for defaults, but prefer stored X/Y
+        // We run BFS to calculate levels, but only use them if X/Y are missing (0/0)
+        const levels = {}; 
+        const queue = [{ id: project.config.startSceneId, level: 0 }];
+        const visited = new Set();
+        while(queue.length > 0) {
+            const curr = queue.shift();
+            if(visited.has(curr.id)) continue;
+            visited.add(curr.id);
+            levels[curr.id] = curr.level;
+            project.scenes[curr.id].choices.forEach(c => { 
+                if(project.scenes[c.target]) queue.push({ id: c.target, level: curr.level + 1 });
+            });
+        }
+        Object.keys(project.scenes).forEach(id => { if(!visited.has(id)) levels[id] = 0; });
         
-        // Render Nodes
-        Object.values(project.scenes).forEach(scene => {
-            const x = scene.x || 50;
-            const y = scene.y || 50;
-            
-            const el = Dom.create('div', {
-                class: `map-node ${scene.id === project.config.startSceneId ? 'start-node' : ''}`,
-                id: `node-${scene.id}`,
-                dataset: { id: scene.id },
-                style: { left: x + 'px', top: y + 'px' },
-                // Left click opens Quick Edit, Right click traces
-                onClick: (e) => { 
-                    e.stopPropagation();
-                    const rect = el.getBoundingClientRect();
-                    QuickEditModal.show(scene.id, rect.right + 10, rect.top);
-                },
-                onContextMenu: (e) => { e.preventDefault(); /* Trace logic */ }
-            }, [
-                Dom.create('div', { text: scene.id, style: 'pointer-events:none;' })
-            ]);
-
-            // Visual Link Handle (Right side)
-            const handle = Dom.create('div', {
-                class: 'link-handle',
-                dataset: { id: scene.id },
-                title: 'Drag to link'
-            });
-            el.appendChild(handle);
-
-            this.nodesLayer.appendChild(el);
+        const levelGroups = {};
+        Object.entries(levels).forEach(([id, lvl]) => {
+            if(!levelGroups[lvl]) levelGroups[lvl] = [];
+            levelGroups[lvl].push(id);
         });
 
-        // Render Links
-        Object.values(project.scenes).forEach(scene => {
-            scene.choices.forEach(c => {
-                if(!c.target || !project.scenes[c.target]) return;
+        // Calculate positions
+        const positions = {};
+        Object.keys(levelGroups).sort((a,b)=>a-b).forEach(lvl => {
+            levelGroups[lvl].forEach((id, idx) => {
+                const s = project.scenes[id];
+                // Use stored if > 0 (assuming 0,0 is default/invalid) or specifically set
+                // Just checking if x exists in your object structure. 
+                // Store init sets x=100, y=100.
+                // If it's effectively default/clashing, apply layout.
+                // Simple heuristic: If we haven't dragged it, use auto layout.
                 
-                const p1 = project.scenes[scene.id];
-                const p2 = project.scenes[c.target];
+                // For now, let's respect X/Y if they are not 100/100 (default) OR if we want to enforce layout on load.
+                // Better approach: If X/Y exist, use them. If not, calculate. 
+                // Since I added X/Y to Store, they exist. 
+                // Let's use them directly.
                 
-                // Coordinates
-                const startX = (p1.x || 50) + 140; // Width of node roughly
-                const startY = (p1.y || 50) + 25;  // Half height
-                const endX = (p2.x || 50);
-                const endY = (p2.y || 50) + 25;
+                let x = s.x;
+                let y = s.y;
+                
+                // If this is a fresh load of an old project, X/Y might be undefined.
+                if (x === undefined || y === undefined) {
+                    x = 50 + (lvl * 220);
+                    y = 50 + (idx * 80);
+                    // Update store so it sticks next time
+                    Store.updateScenePosition(id, x, y);
+                }
 
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                path.setAttribute("class", "map-path");
-                
-                const c1x = startX + 50; 
-                const c2x = endX - 50;
-                path.setAttribute("d", `M ${startX} ${startY} C ${c1x} ${startY}, ${c2x} ${endY}, ${endX} ${endY}`);
-                
-                this.svgLayer.appendChild(path);
+                positions[id] = { x, y };
+
+                const el = Dom.create('div', {
+                    class: `map-node ${id === project.config.startSceneId ? 'start-node' : ''}`,
+                    id: `node-${id}`,
+                    text: id,
+                    dataset: { id: id },
+                    style: { left: x + 'px', top: y + 'px' },
+                    
+                    // Interaction Handlers
+                    // Left Click -> Quick Edit (via bubble event, check stopPropagation in Drag)
+                    onClick: (e) => { 
+                        e.stopPropagation();
+                        // Only show if not dragging
+                        if (!this.state.draggingNode) {
+                            const rect = el.getBoundingClientRect();
+                            // Pass page coordinates to modal
+                            QuickEditModal.show(id, e.pageX + 20, e.pageY);
+                        }
+                    },
+                    
+                    // Right Click -> Trace
+                    onContextMenu: (e) => { 
+                        e.preventDefault(); 
+                        this.toggleTrace(id); 
+                    }
+                });
+
+                // Link Handle
+                const handle = Dom.create('div', {
+                    class: 'link-handle',
+                    dataset: { id: id },
+                    title: 'Drag to link'
+                });
+                el.appendChild(handle);
+
+                this.nodesLayer.appendChild(el);
             });
         });
+
+        // Draw Links
+        Object.keys(project.scenes).forEach(id => {
+            const p1 = positions[id];
+            if(!p1) return;
+            project.scenes[id].choices.forEach((c, i) => {
+                const p2 = positions[c.target];
+                if(p2) {
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("class", "map-path");
+                    path.setAttribute("id", `link-${id}-${c.target}-${i}`); // ID for trace
+                    
+                    // Source: Right side of node
+                    const startX = p1.x + 140; 
+                    const startY = p1.y + 25; // Middle of node roughly
+                    
+                    // Target: Left side of node
+                    const endX = p2.x; 
+                    const endY = p2.y + 25;
+
+                    const c1x = startX + 50; 
+                    const c2x = endX - 50;
+                    path.setAttribute("d", `M ${startX} ${startY} C ${c1x} ${startY}, ${c2x} ${endY}, ${endX} ${endY}`);
+                    this.svgLayer.appendChild(path);
+                }
+            });
+        });
+    },
+
+    // --- TRACING (Restored) ---
+    toggleTrace(targetId) {
+        if(this.tracedNodeId === targetId) { this.clearTrace(); return; }
+        this.clearTrace();
+        this.tracedNodeId = targetId;
+        document.getElementById('map-canvas').classList.add('tracing');
+
+        const visited = new Set();
+        const activeNodes = new Set();
+        const activeLinks = new Set();
+        const project = Store.getProject();
+        
+        // Rebuild parent map freshly
+        const parents = {};
+        Object.keys(project.scenes).forEach(id => {
+            project.scenes[id].choices.forEach(c => {
+                if(c.target) {
+                    if(!parents[c.target]) parents[c.target] = [];
+                    if(!parents[c.target].includes(id)) parents[c.target].push(id);
+                }
+            });
+        });
+
+        const crawl = (id) => {
+            if(visited.has(id)) return;
+            visited.add(id);
+            activeNodes.add(id);
+            if (id === project.config.startSceneId && id !== targetId) return;
+            const p = parents[id] || [];
+            p.forEach(pid => {
+                // Find specific choice index for link ID
+                project.scenes[pid].choices.forEach((c, idx) => {
+                    if(c.target === id) activeLinks.add(`link-${pid}-${id}-${idx}`);
+                });
+                crawl(pid);
+            });
+        };
+        crawl(targetId);
+        
+        activeNodes.forEach(id => { const el = document.getElementById(`node-${id}`); if(el) el.classList.add('active-path'); });
+        activeLinks.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('active-path'); });
+    },
+
+    clearTrace() {
+        document.getElementById('map-canvas').classList.remove('tracing');
+        document.querySelectorAll('.active-path').forEach(el => el.classList.remove('active-path'));
+        this.tracedNodeId = null;
     }
 };
-
 MapEditor.init();
